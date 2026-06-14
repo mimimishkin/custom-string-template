@@ -1,0 +1,26 @@
+product:
+  type: lib
+  platforms: [
+    jvm, #android,
+    js, wasmJs, wasmWasi,
+
+    macosArm64,
+    tvosArm64, tvosSimulatorArm64,
+    iosArm64, iosSimulatorArm64,
+    watchosArm64, watchosDeviceArm64, watchosSimulatorArm64,
+
+    linuxArm64, linuxX64,
+
+    mingwX64,
+
+#    androidNativeArm64, androidNativeX64
+  ]
+
+description: "Annotation and a class required to write a custom string template."
+
+settings:
+  publishing:
+    enabled: true
+    group: io.github.mimimishkin
+    name: custom-string-template-annotations
+    version: 0.0.1
