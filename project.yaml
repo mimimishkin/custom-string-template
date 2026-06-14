@@ -1,0 +1,5 @@
+modules:
+  - compiler-plugin
+  - amper-plugin
+  - runtime
+  - test
