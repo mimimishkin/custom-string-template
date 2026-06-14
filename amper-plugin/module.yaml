@@ -1,0 +1,6 @@
+product: jvm/amper-plugin
+
+description: "Allows to create a custom string template processors like modern Java does."
+
+pluginInfo:
+  id: io.github.mimimishkin.custom-string-template

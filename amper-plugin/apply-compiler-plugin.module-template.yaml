@@ -1,0 +1,11 @@
+dependencies:
+#  - io.github.mimimishkin:custom-string-template-annotations:0.0.1
+  - ../runtime
+
+settings:
+  kotlin:
+    optIns:
+      - io.github.mimimishkin.custom.string.template.FacadeInterpolatorCall
+    compilerPlugins:
+      - id: io.github.mimimishkin.custom-string-template
+        dependency: io.github.mimimishkin:custom-string-template-compiler-plugin:0.0.1
