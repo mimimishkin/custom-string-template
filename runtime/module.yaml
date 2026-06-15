@@ -1,7 +1,7 @@
 product:
   type: lib
   platforms: [
-    jvm, #android,
+    jvm, android,
     js, wasmJs, wasmWasi,
 
     macosArm64,
@@ -13,7 +13,7 @@ product:
 
     mingwX64,
 
-#    androidNativeArm64, androidNativeX64
+    androidNativeArm64, androidNativeX64
   ]
 
 description: "Annotation and a class required to write a custom string template."
@@ -22,5 +22,5 @@ settings:
   publishing:
     enabled: true
     group: io.github.mimimishkin
-    name: custom-string-template-annotations
+    artifactId: custom-string-template-runtime
     version: 0.0.1

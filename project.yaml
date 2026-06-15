@@ -1,5 +1,8 @@
 modules:
-  - compiler-plugin
   - amper-plugin
+  - compiler-plugin
   - runtime
   - test
+
+plugins:
+  - ./amper-plugin
