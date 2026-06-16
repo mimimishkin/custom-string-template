@@ -6,28 +6,32 @@ import kotlin.jvm.JvmStatic
 /**
  * TODO:
  */
-@JvmRecord
-data class StringTemplate<out T>(val surroundings: List<String>, val holes: List<T>) {
-    init {
-        require(surroundings.size == holes.size + 1) {
-            "Size of surroundings must be bigger than holes by exactly 1. " +
-                    "Current sizes: surroundings=${surroundings.size}, holes=${holes.size}"
-        }
-    }
+interface StringTemplate<out T> {
+    /**
+     * List of string fragments that surround each [hole][holes] value. Size of this list is always larger that [holes]
+     * by 1. Some fragments can be empty: in the start and the end of the string and between two holes if there are no
+     * space between them.
+     */
+    val surroundings: List<String>
 
-//    fun reconstruct(): String = buildString {
-//        for (i in holes.indices) {
-//            append(surroundings[i])
-//            append(holes[i])
-//        }
-//        append(surroundings.last())
-//    }
+    /**
+     * List of object values that is surrounded by strings.
+     */
+    val holes: List<T>
+
+    fun reconstruct(): String = buildString {
+        for (i in holes.indices) {
+            append(surroundings[i])
+            append(holes[i])
+        }
+        append(surroundings.last())
+    }
 
     companion object {
         internal const val HOLES_DIVIDER = "\u001F"
 
         /**
-         * Allow to create an interpolation parameter manually, when the custom string template plugin cannot be used
+         * Allow to create an interpolation parameter manually, when the custom-string-template plugin cannot be used
          * (including Java code).
          *
          * For example:
@@ -44,8 +48,15 @@ data class StringTemplate<out T>(val surroundings: List<String>, val holes: List
         fun <T> of(buildTemplate: WithoutPluginBuilder<T>.() -> String): StringTemplate<T> {
             val builder = WithoutPluginBuilder<T>()
             val string = builder.buildTemplate()
+
             val surroundings = string.split(HOLES_DIVIDER)
-            return StringTemplate(surroundings, builder.holes)
+            val holes = builder.holes
+            require(surroundings.size == holes.size + 1) {
+                "Size of surroundings must be bigger than holes by exactly 1. " +
+                        "Current sizes: surroundings=${surroundings.size}, holes=${holes.size}"
+            }
+
+            return SimpleStringTemplate(surroundings, holes)
         }
 
         /**
@@ -59,7 +70,7 @@ data class StringTemplate<out T>(val surroundings: List<String>, val holes: List
          */
         @JvmStatic
         fun <T> wholeOf(string: String): StringTemplate<T> {
-            return StringTemplate(listOf(string), emptyList())
+            return SimpleStringTemplate(listOf(string), emptyList())
         }
 
         /**
@@ -74,10 +85,13 @@ data class StringTemplate<out T>(val surroundings: List<String>, val holes: List
          */
         @JvmStatic
         fun <T> wholeOf(any: T): StringTemplate<T> {
-            return StringTemplate(listOf("", ""), listOf(any))
+            return SimpleStringTemplate(listOf("", ""), listOf(any))
         }
     }
 
+    /**
+     * Allow to create a [StringTemplate] without a `custom-string-template` plugin via small dsl.
+     */
     class WithoutPluginBuilder<T> {
         internal val holes = mutableListOf<T>()
 
@@ -89,3 +103,13 @@ data class StringTemplate<out T>(val surroundings: List<String>, val holes: List
         operator fun T.unaryPlus() = hole(this)
     }
 }
+
+/**
+ * Simple [StringTemplate] implementation with eagle fragments and values initialization and without a size
+ * check.
+ */
+@PublishedApi
+internal data class SimpleStringTemplate<T>(
+    override val surroundings: List<String>,
+    override val holes: List<T>
+) : StringTemplate<T>

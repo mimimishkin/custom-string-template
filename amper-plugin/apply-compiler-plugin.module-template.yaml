@@ -1,6 +1,5 @@
 dependencies:
-#  - io.github.mimimishkin:custom-string-template-runtime:0.0.1: exported
-  - ../runtime: exported
+  - $libs.customStringTemplate.runtime
 
 settings:
   kotlin:

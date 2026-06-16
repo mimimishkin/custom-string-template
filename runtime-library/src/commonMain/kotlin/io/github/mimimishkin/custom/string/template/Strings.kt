@@ -9,6 +9,6 @@ internal const val CALL_WITHOUT_PLUGIN = "Interpolation can only be done with a 
         "\n" +
         "Warning: opting this in will just suppress this error, but runtime error won't be solved."
 
-internal const val ERROR_PLUGIN_DISABLED = "An attempt to use custom string template interpolator without a plugin. " +
+internal const val ERROR_PLUGIN_DISABLED = "An attempt to use string template processor without a plugin. " +
         "To use this function a compiler plugin is required: '$PLUGIN_ID'. " +
         "See how to enable: $GITHUB_LINK"

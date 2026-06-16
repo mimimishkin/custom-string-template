@@ -1,4 +1,0 @@
-product: jvm/app
-
-apply:
-  - ../amper-plugin/apply-compiler-plugin.module-template.yaml

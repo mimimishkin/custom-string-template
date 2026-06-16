@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="runtime-library">
+    <output-path>$PROJECT_DIR$/runtime-library/build/libs</output-path>
+    <root id="archive" name="runtime-library.jar">
+      <element id="module-output" name="custom-string-template.runtime-library.androidMain" />
+    </root>
+  </artifact>
+</component>

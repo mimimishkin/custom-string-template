@@ -1,0 +1,49 @@
+package io.github.mimimishkin.custom.string.template
+
+import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
+import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
+import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
+import org.jetbrains.kotlin.fir.types.FirTypeRef
+import org.jetbrains.kotlin.fir.types.classId
+import org.jetbrains.kotlin.fir.types.coneType
+import org.jetbrains.kotlin.ir.declarations.IrDeclaration
+import org.jetbrains.kotlin.ir.expressions.IrDeclarationReference
+import org.jetbrains.kotlin.name.CallableId
+import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
+
+interface WithContext {
+    val context: IrPluginContext
+
+    val builtIns get() = context.irBuiltIns
+    val reporter get() = context.diagnosticReporter
+    val factory get() = context.irFactory
+    val finder get() = context.finderForBuiltins()
+
+    fun IrDeclaration.getBuilder() = DeclarationIrBuilder(context, symbol, startOffset, endOffset)
+
+    fun IrDeclarationReference.getBuilder() = DeclarationIrBuilder(context, symbol, startOffset, endOffset)
+}
+
+//val KClass<*>.classId: ClassId?
+//    get() = qualifiedName?.let { ClassId.fromString(it) } ?: simpleName?.let { ClassId.fromString(it, isLocal = true) }
+
+fun String.fqn() = FqName(this)
+
+fun String.ident() = Name.identifier(this)
+
+val FqName.Companion.LOCAL get() = CallableId.PACKAGE_FQ_NAME_FOR_LOCAL
+
+fun FqName.topClassId(name: String) = ClassId(this, name.ident())
+
+fun localClassId(name: String) = ClassId(FqName.LOCAL, FqName.topLevel(name.ident()), isLocal = true)
+
+fun FqName.topCallableId(name: String) = CallableId(this, name.ident())
+
+context(context: CheckerContext)
+inline val session get() = context.session
+
+fun FirTypeRef.isStringTemplate(): Boolean {
+    return coneType.classId == Symbols.StringTemplate
+}

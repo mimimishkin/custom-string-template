@@ -1,13 +1,11 @@
-# Custom StringTemplate Processor
+# Custom StringTemplate
 
 A small Kotlin plugin that lets you write your own string interpolation logic without the usual ceremony.
 
 ## What's this for?
 
-Ever wanted to write something like `log.debug("User ${getName()} has score ${getScore()}")` and have it only evaluate the
-interpolated expressions when debug logging is actually enabled? Or `html.div("Hello $name")` that automatically escapes
-`name` for you? Or `sql.query("SELECT * FROM users WHERE id = $userId")` that safely turns `$userId` into a prepared
-statement parameter?
+Ever wanted to write something like `html.div("Hello $name")` that automatically escapes `name` for you? Or 
+`sql.query("SELECT * FROM users WHERE id = $userId")` that safely turns `$userId` into a prepared statement parameter?
 
 This plugin lets you define a function that processes a `StringTemplate` - and it generates the rest for you.
 

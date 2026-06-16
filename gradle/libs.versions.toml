@@ -1,0 +1,46 @@
+[versions]
+# https://github.com/JetBrains/kotlin
+kotlin = "2.4.0"
+
+# https://github.com/Kotlin/binary-compatibility-validator
+binaryCompatibilityValidator = "0.18.1"
+
+# https://github.com/gmazzo/gradle-buildconfig-plugin
+buildconfig = "6.0.10"
+
+# https://github.com/mimimishkin/custom-string-template
+customStringTemplate = "0.0.1"
+
+pluginPublish = "2.1.1"
+
+agp = "9.2.1"
+
+autoService = "1.1.1"
+
+# https://github.com/google/ksp
+ksp = "2.3.9"
+
+# https://github.com/ZacSweers/auto-service-ksp
+autoServiceKsp = "1.2.0"
+
+# https://github.com/vanniktech/gradle-maven-publish-plugin
+mavenPublish = "0.36.0"
+
+[libraries]
+kotlin-gradlePluginApi  = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin-api", version.ref = "kotlin" }
+kotlin-compiler = { group = "org.jetbrains.kotlin", name = "kotlin-compiler", version.ref = "kotlin" }
+google-autoService = { group = "com.google.auto.service", name = "auto-service-annotations", version.ref = "autoService" }
+zacsweers-autoServiceKsp = { group = "dev.zacsweers.autoservice", name = "auto-service-ksp", version.ref = "autoServiceKsp" }
+# this
+customStringTemplate-runtime = { group = "io.github.mimimishkin", name = "custom-string-template-runtime", version.ref = "customStringTemplate" }
+customStringTemplate-compilerPlugin = { group = "io.github.mimimishkin", name = "custom-string-template", version.ref = "customStringTemplate" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+android-kmpLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+kotlin-binaryCompatibilityValidator = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "binaryCompatibilityValidator"}
+google-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }
+pluginPublish = { id = "com.gradle.plugin-publish", version.ref = "pluginPublish" }
+mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
