@@ -16,6 +16,10 @@ dependencies {
     compileOnly(libs.kotlin.compiler)
     implementation(libs.google.autoService)
     ksp(libs.zacsweers.autoServiceKsp)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.customStringTemplate.runtime)
+    testImplementation(libs.zacsweers.kctFork)
 }
 
 mavenPublishing {

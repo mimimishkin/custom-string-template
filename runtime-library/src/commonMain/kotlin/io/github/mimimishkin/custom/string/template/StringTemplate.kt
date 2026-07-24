@@ -6,7 +6,7 @@ import kotlin.jvm.JvmStatic
 /**
  * TODO:
  */
-interface StringTemplate<out T> {
+interface StringTemplate {
     /**
      * List of string fragments that surround each [hole][holes] value. Size of this list is always larger that [holes]
      * by 1. Some fragments can be empty: in the start and the end of the string and between two holes if there are no
@@ -17,7 +17,7 @@ interface StringTemplate<out T> {
     /**
      * List of object values that is surrounded by strings.
      */
-    val holes: List<T>
+    val holes: List<Any?>
 
     fun reconstruct(): String = buildString {
         for (i in holes.indices) {
@@ -45,7 +45,7 @@ interface StringTemplate<out T> {
          * Will produce the same result as if `"$x + $y = ${x + y}"` when plugin is used.
          */
         @JvmStatic
-        fun <T> of(buildTemplate: WithoutPluginBuilder<T>.() -> String): StringTemplate<T> {
+        fun <T> of(buildTemplate: WithoutPluginBuilder<T>.() -> String): StringTemplate {
             val builder = WithoutPluginBuilder<T>()
             val string = builder.buildTemplate()
 
@@ -69,7 +69,7 @@ interface StringTemplate<out T> {
          * Will produce the same result as if `"meow"` when plugin is used.
          */
         @JvmStatic
-        fun <T> wholeOf(string: String): StringTemplate<T> {
+        fun <T> wholeOf(string: String): StringTemplate {
             return SimpleStringTemplate(listOf(string), emptyList())
         }
 
@@ -84,7 +84,7 @@ interface StringTemplate<out T> {
          * Will produce the same result as if `"$any"` when plugin is used.
          */
         @JvmStatic
-        fun <T> wholeOf(any: T): StringTemplate<T> {
+        fun wholeOf(any: Any?): StringTemplate {
             return SimpleStringTemplate(listOf("", ""), listOf(any))
         }
     }
@@ -109,7 +109,7 @@ interface StringTemplate<out T> {
  * check.
  */
 @PublishedApi
-internal data class SimpleStringTemplate<T>(
+internal data class SimpleStringTemplate(
     override val surroundings: List<String>,
-    override val holes: List<T>
-) : StringTemplate<T>
+    override val holes: List<Any?>
+) : StringTemplate

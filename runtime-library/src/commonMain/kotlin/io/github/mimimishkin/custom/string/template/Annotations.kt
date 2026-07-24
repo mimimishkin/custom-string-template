@@ -1,11 +1,12 @@
 package io.github.mimimishkin.custom.string.template
 
 /**
- * Marks that interpolator requires a `io.github.mimimishkin.custom-string-template` Kotlin compiler plugin to
- * be used.
+ * Marks that a function is a generated facade for a @TemplateProcessor function.
+ * Facades with this annotation automatically opt-in to allow seamless usage.
  */
 @Retention(AnnotationRetention.BINARY)
-@Target(AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER)
+@Target(AnnotationTarget.FUNCTION)
+@DslMarker
 @RequiresOptIn(CALL_WITHOUT_PLUGIN)
 annotation class FacadeInterpolatorCall
 
@@ -13,7 +14,5 @@ annotation class FacadeInterpolatorCall
  * TODO:
  */
 @Retention(AnnotationRetention.BINARY)
-@Target(AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER)
+@Target(AnnotationTarget.FUNCTION)
 annotation class TemplateProcessor
-
-// TODO: add highlighting to templates if possible

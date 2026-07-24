@@ -5,16 +5,10 @@ package io.github.mimimishkin.custom.string.template
 import com.google.auto.service.AutoService
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
-import org.jetbrains.kotlin.compiler.plugin.AbstractCliOption
-import org.jetbrains.kotlin.compiler.plugin.CliOption
-import org.jetbrains.kotlin.compiler.plugin.CommandLineProcessor
-import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
-import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
+import org.jetbrains.kotlin.compiler.plugin.*
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.CompilerConfigurationKey
-import org.jetbrains.kotlin.fir.extensions.FirExtensionApiInternals
 import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
-import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrarAdapter
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 
 object CustomStringTemplate {
@@ -56,10 +50,9 @@ class CustomStringTemplateRegistrar : CompilerPluginRegistrar() {
     }
 
     object FirRegistrar : FirExtensionRegistrar() {
-        @OptIn(FirExtensionApiInternals::class)
         override fun ExtensionRegistrarContext.configurePlugin() {
-            +::FirTemplateProcessorFacadeGenerator
             +::RightStringTemplateUseChecker
+            +::FirTemplateProcessorFacadeGenerator
         }
     }
 

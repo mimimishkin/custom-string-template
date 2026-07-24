@@ -18,4 +18,3 @@ dependencyResolutionManagement {
 include("custom-string-template-gradle-plugin")
 include("kotlin-compiler-plugin")
 include("runtime-library")
-include("test")

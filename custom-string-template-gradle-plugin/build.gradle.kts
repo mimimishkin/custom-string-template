@@ -4,8 +4,9 @@ plugins {
     // Apply the Java Gradle plugin development plugin to add support for developing Gradle plugins
     `java-gradle-plugin`
     alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.buildconfig)
+    alias(libs.plugins.buildConfig)
     alias(libs.plugins.pluginPublish)
+    alias(libs.plugins.mavenPublish)
 }
 
 group = "io.github.mimimishkin"

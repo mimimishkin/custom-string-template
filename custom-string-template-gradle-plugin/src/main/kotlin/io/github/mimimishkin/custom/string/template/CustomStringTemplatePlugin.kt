@@ -8,12 +8,19 @@ import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 
 class CustomStringTemplatePlugin : KotlinCompilerPluginSupportPlugin {
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
-        kotlinCompilation.defaultSourceSet.dependencies {
-            implementation(BuildConfig.RUNTIME_LIBRARY)
+        kotlinCompilation.defaultSourceSet {
+            dependencies {
+                implementation(BuildConfig.RUNTIME_LIBRARY)
+            }
         }
 
         kotlinCompilation.compileTaskProvider.configure {
-            it.compilerOptions.optIn.add("io.github.mimimishkin.custom.string.template.FacadeInterpolatorCall")
+            it.compilerOptions {
+                // allow use of facade functions
+                optIn.add("io.github.mimimishkin.custom.string.template.FacadeInterpolatorCall")
+                // wrong warning, just suppress
+                freeCompilerArgs.add("-Xwarning-level=DSL_MARKER_APPLIED_TO_WRONG_TARGET:disabled")
+            }
         }
 
         return kotlinCompilation.project.provider { emptyList() }

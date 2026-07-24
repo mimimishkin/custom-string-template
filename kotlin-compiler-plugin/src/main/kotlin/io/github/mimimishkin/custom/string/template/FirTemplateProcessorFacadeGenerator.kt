@@ -1,20 +1,25 @@
 package io.github.mimimishkin.custom.string.template
 
 import org.jetbrains.kotlin.GeneratedDeclarationKey
+import org.jetbrains.kotlin.descriptors.EffectiveVisibility
+import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.descriptors.Visibilities
+import org.jetbrains.kotlin.fir.FirFunctionTarget
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.builder.*
-import org.jetbrains.kotlin.fir.expressions.FirBlock
+import org.jetbrains.kotlin.fir.declarations.utils.isActual
+import org.jetbrains.kotlin.fir.declarations.utils.isOverride
 import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotationCall
-import org.jetbrains.kotlin.fir.expressions.builder.buildBlock
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
-import org.jetbrains.kotlin.fir.expressions.builder.buildReturnExpression
+import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
+import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
 import org.jetbrains.kotlin.fir.extensions.ExperimentalTopLevelDeclarationsGenerationApi
 import org.jetbrains.kotlin.fir.extensions.FirDeclarationGenerationExtension
+import org.jetbrains.kotlin.fir.extensions.FirDeclarationPredicateRegistrar
 import org.jetbrains.kotlin.fir.extensions.MemberGenerationContext
 import org.jetbrains.kotlin.fir.extensions.predicate.LookupPredicate
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
-import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
@@ -22,25 +27,31 @@ import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.name.CallableId
+import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.Name
 
 class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationGenerationExtension(session) {
     object TemplateProcessorFacade : GeneratedDeclarationKey()
 
-    val predicate = LookupPredicate.create { annotatedOrUnder(Symbols.TemplateProcessor.asSingleFqName()) }
+    companion object {
+        private val predicate = LookupPredicate.create { annotatedOrUnder(Symbols.TemplateProcessor.asSingleFqName()) }
+    }
     override fun FirDeclarationPredicateRegistrar.registerPredicates() {
         register(predicate)
     }
 
-    private val processorByClasses by lazy {
+    private val processorByClasses: Map<ClassId?, MutableMap<CallableId, MutableList<FirFunctionSymbol<*>>>> by lazy {
         val provider = session.predicateBasedProvider
-        val predicate = LookupPredicate.create { annotated(Symbols.TemplateProcessor.asSingleFqName()) }
-        val allTemplates = provider.getSymbolsByPredicate(predicate).filterIsInstance<FirFunctionSymbol<*>>()
-        allTemplates.groupBy { it.callableId.classId }
-    }
-
-    private fun getOriginal(callableId: CallableId): List<FirFunctionSymbol<*>> {
-        return processorByClasses[callableId.classId]!!.filter { it.name == callableId }
+        @OptIn(SymbolInternals::class)
+        provider.getSymbolsByPredicate(predicate)
+            .filterIsInstance<FirFunctionSymbol<*>>()
+            .filter { it.isInterpolator() }
+            .filter { !it.isActual }
+            .filter { !it.fir.status.isOverride }
+            .groupBy { it.callableId.classId }
+            .mapValues { (_, symbol) ->
+                symbol.groupByTo(mutableMapOf()) { it.callableId }
+            }
     }
 
     /**
@@ -49,7 +60,7 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
     override fun getCallableNamesForClass(classSymbol: FirClassSymbol<*>, context: MemberGenerationContext): Set<Name> {
         // we will generate a sibling functions
         val thisClassProcessors = processorByClasses[classSymbol.classId] ?: return emptySet()
-        return thisClassProcessors.mapTo(mutableSetOf()) { it.name }
+        return thisClassProcessors.mapTo(mutableSetOf()) { (id, _) -> id.callableName }
     }
 
     /**
@@ -59,10 +70,10 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
     override fun getTopLevelCallableIds(): Set<CallableId> {
         // we will generate a sibling functions
         val topLevelProcessors = processorByClasses[null] ?: return emptySet()
-        return topLevelProcessors.mapTo(mutableSetOf()) { it.callableId }
+        return topLevelProcessors.mapTo(mutableSetOf()) { (id, _) -> id }
     }
 
-    private val annotationActualInterpolatorCall: FirClassifierSymbol<*> by lazy {
+    private val annotationFacadeInterpolatorCall: FirClassifierSymbol<*> by lazy {
         Symbols.FacadeInterpolatorCall.toSymbol(session)!!
     }
 
@@ -73,19 +84,21 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
     }
 
     private fun originalBy(callableId: CallableId): List<FirFunctionSymbol<*>> {
-        return processorByClasses[callableId.classId]!!.filter { it.name == callableId.callableName }
+        val classSymbols = processorByClasses[callableId.classId]
+        return classSymbols?.remove(callableId) ?: emptyList()
     }
 
     /**
      * Generate sibling stub functions.
      */
     @OptIn(SymbolInternals::class)
-    override fun generateFunctions(callableId: CallableId, context: MemberGenerationContext?): List<FirNamedFunctionSymbol> = with(session.typeContext) {
+    override fun generateFunctions(callableId: CallableId, context: MemberGenerationContext?): List<FirNamedFunctionSymbol> {
         return originalBy(callableId).filterIsInstance<FirNamedFunctionSymbol>().map { original ->
+            val firFunctionTarget: FirFunctionTarget
             val sibling = buildNamedFunctionCopy(original.fir) {
-                symbol = FirNamedFunctionSymbol(callableId)
-                configFacade()
+                firFunctionTarget = configFacade(callableId, original)
             }
+            firFunctionTarget.bind(sibling)
             sibling.symbol
         }
     }
@@ -96,119 +109,135 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
     @OptIn(SymbolInternals::class)
     override fun generateProperties(callableId: CallableId, context: MemberGenerationContext?): List<FirPropertySymbol> {
         return originalBy(callableId).filterIsInstance<FirPropertyAccessorSymbol>().map { original ->
+            val firFunctionTarget: FirFunctionTarget
             val sibling = buildPropertyCopy(original.propertySymbol.fir) {
-                symbol = FirRegularPropertySymbol(callableId)
-                configFacade()
+                firFunctionTarget = configFacade(callableId, original)
             }
+            firFunctionTarget.bind(sibling.getter!!)
             sibling.symbol
         }
     }
 
-    private fun FirDeclarationBuilder.configFacade() = with(session.typeContext) {
+    private fun FirDeclarationBuilder.configFacade(callableId: CallableId, original: FirFunctionSymbol<*>) = with(session.typeContext) {
         val builder = this@configFacade
         val isProperty = builder is FirPropertyBuilder
         val isFunction = builder is FirNamedFunctionBuilder
         require(isFunction || isProperty)
 
-        // set up resolve phase that complier expects
+        val thisSymbol = if (isFunction) {
+            symbol = FirNamedFunctionSymbol(callableId)
+            symbol
+        } else {
+            builder as FirPropertyBuilder
+            symbol = FirRegularPropertySymbol(callableId)
+            symbol
+        }
+
         resolvePhase = FirResolvePhase.BODY_RESOLVE
-
-        // set up origin
         origin = FirDeclarationOrigin.Plugin(TemplateProcessorFacade)
+        moduleData = original.moduleData
+        source = null
 
-        // prepare string cone type
+        if (isFunction) {
+            val currentStatus = status
+            if (currentStatus !is FirResolvedDeclarationStatus) {
+                status = org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl(
+                    currentStatus.visibility.takeIf { it != Visibilities.Unknown } ?: Visibilities.Public,
+                    Modality.FINAL,
+                    EffectiveVisibility.Public
+                )
+            }
+        }
+
         val stringType = session.builtinTypes.stringType.coneType
-        fun FirReceiverParameter.toStringParam(): FirReceiverParameter {
-            // deep copy value parameter but replace type ref with string type
-            return buildReceiverParameterCopy(this) {
-                symbol = this@toStringParam.symbol
-                typeRef = this@toStringParam.typeRef.withReplacedConeType(
-                    stringType.withNullability(this@toStringParam.typeRef.coneType.isMarkedNullable) as ConeKotlinType
+
+        fun FirTypeRef.toNullableString(): ConeKotlinType =
+            stringType.withNullability(coneType.isMarkedNullable) as ConeKotlinType
+
+        fun FirReceiverParameter.withStringType(): FirReceiverParameter =
+            if (typeRef.isStringTemplate()) buildReceiverParameterCopy(this) {
+                origin = FirDeclarationOrigin.Plugin(TemplateProcessorFacade)
+                source = null
+                symbol = FirReceiverParameterSymbol()
+                typeRef = this@withStringType.typeRef.withReplacedConeType(
+                    this@withStringType.typeRef.toNullableString()
                 )
+            } else this
+
+        fun FirValueParameter.withStringType(): FirValueParameter =
+            if (returnTypeRef.isStringTemplate()) buildValueParameterCopy(this) {
+                origin = FirDeclarationOrigin.Plugin(TemplateProcessorFacade)
+                source = null
+                symbol = FirValueParameterSymbol()
+                returnTypeRef = if (this@withStringType.isVararg) {
+                    val arrayType = this@withStringType.returnTypeRef.coneType as ConeClassLikeType
+                    val elementType = arrayType.varargElementType()
+                    val newElementType = stringType.withNullability(elementType.isMarkedNullable) as ConeKotlinType
+                    this@withStringType.returnTypeRef.withReplacedConeType(
+                        arrayType.withArguments(arrayOf(ConeKotlinTypeProjectionOut(newElementType)))
+                    )
+                } else {
+                    this@withStringType.returnTypeRef.withReplacedConeType(
+                        this@withStringType.returnTypeRef.toNullableString()
+                    )
+                }
+            } else this
+
+        when (builder) {
+            is FirNamedFunctionBuilder -> {
+                builder.receiverParameter = builder.receiverParameter?.withStringType()
+                builder.valueParameters.replaceAll { it.withStringType() }
+                builder.contextParameters.replaceAll { it.withStringType() }
             }
-        }
-        fun FirValueParameter.toStringParam(): FirValueParameter {
-            // deep copy value parameter but replace type ref with string type
-            return buildValueParameterCopy(this) {
-                symbol = this@toStringParam.symbol
-                returnTypeRef = this@toStringParam.returnTypeRef.withReplacedConeType(
-                    stringType.withNullability(this@toStringParam.returnTypeRef.coneType.isMarkedNullable) as ConeKotlinType
-                )
+            is FirPropertyBuilder -> {
+                builder.receiverParameter = builder.receiverParameter?.withStringType()
             }
         }
 
-        // replace [StringTemplate]s with [String]s
-        val receiverParameter = (builder as? FirPropertyBuilder)?.receiverParameter ?: (builder as FirNamedFunctionBuilder).receiverParameter
-        if (receiverParameter?.typeRef?.isStringTemplate() == true) {
-            // deep copy receiver parameter but replace type ref with string type
-            val stringParam = receiverParameter.toStringParam()
-            if (builder is FirPropertyBuilder) {
-                builder.receiverParameter = stringParam
-            } else if (builder is FirNamedFunctionBuilder) {
-                builder.receiverParameter = stringParam
-            }
-        }
-
-        val valueParameters = (builder as? FirNamedFunctionBuilder)?.valueParameters ?: mutableListOf()
-        valueParameters.forEachIndexed { i, parameter ->
-            if (parameter.returnTypeRef.isStringTemplate()) {
-                valueParameters[i] = parameter.toStringParam()
-            }
-        }
-        val contextParameters = (builder as? FirPropertyBuilder)?.contextParameters ?: (builder as FirNamedFunctionBuilder).contextParameters
-        contextParameters.forEachIndexed { i, parameter ->
-            if (parameter.returnTypeRef.isStringTemplate()) {
-                contextParameters[i] = parameter.toStringParam()
-            }
-        }
-
-        // TODO: check @FacadeInterpolatorCall not to be used together with @TemplateProcessor
-
-        // replace @TemplateProcessor with @FacadeInterpolatorCall
-        annotations.forEachIndexed { i, annotation ->
+        annotations.replaceAll { annotation ->
             if (annotation.toAnnotationClassId(session) == Symbols.TemplateProcessor) {
-                annotations[i] = buildAnnotationCall {
+                buildAnnotationCall {
+                    containingDeclarationSymbol = thisSymbol
                     annotationTypeRef = buildResolvedTypeRef {
-                        coneType = annotationActualInterpolatorCall.constructType()
+                        coneType = annotationFacadeInterpolatorCall.constructType()
                     }
                     calleeReference = buildResolvedNamedReference {
                         name = Symbols.FacadeInterpolatorCall.shortClassName
-                        resolvedSymbol = annotationActualInterpolatorCall
+                        resolvedSymbol = annotationFacadeInterpolatorCall
                     }
                 }
+            } else {
+                annotation
             }
         }
 
-        // TODO: remove export annotations, restrict export
+        // @JvmSynthetic / @HideFromObjC / @JsExport.Ignore should be added here but
+        // require resolving stdlib/platform annotations which isn't reliable at FIR level.
+        // These are better added in IrTemplateProcessorFacadeUseActualizer at IR level.
 
-        // always throw an error in body
-        if (builder is FirNamedFunctionBuilder) {
-            // replace body
-            body = blockReturnInterpolationDisabled()
-        } else if (builder is FirPropertyBuilder) {
-            fun accessor(): FirPropertyAccessor = buildPropertyAccessor {
-                // set up resolve phase that complier expects
-                resolvePhase = FirResolvePhase.BODY_RESOLVE
-
-                // set up origin
-                origin = FirDeclarationOrigin.Plugin(TemplateProcessorFacade)
-
-                body = blockReturnInterpolationDisabled()
-            }
-
-            // replace bodies
-            builder.getter = accessor()
-            if (builder.isVar) builder.setter = accessor()
-        }
-    }
-    private fun blockReturnInterpolationDisabled(): FirBlock = buildBlock {
-        statements += buildReturnExpression {
-            result = buildFunctionCall {
+        val firFunctionTarget = FirFunctionTarget(null, false)
+        val newBody = FirSingleExpressionBlock(
+            buildFunctionCall {
+                coneTypeOrNull = session.builtinTypes.nothingType.coneType
                 calleeReference = buildResolvedNamedReference {
                     name = Symbols.interpolationDisabled.callableName
                     resolvedSymbol = funInterpolationDisabled
                 }
             }
+        )
+
+        if (isFunction) {
+            body = newBody
+        } else if (isProperty) {
+            fun accessor(): FirPropertyAccessor = buildPropertyAccessor {
+                resolvePhase = FirResolvePhase.BODY_RESOLVE
+                origin = FirDeclarationOrigin.Plugin(TemplateProcessorFacade)
+                body = newBody
+            }
+            builder.getter = accessor()
+            if (builder.isVar) builder.setter = accessor()
         }
+
+        return@with firFunctionTarget
     }
 }

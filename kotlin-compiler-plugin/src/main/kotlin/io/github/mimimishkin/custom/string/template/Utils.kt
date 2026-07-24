@@ -3,9 +3,14 @@ package io.github.mimimishkin.custom.string.template
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
+import org.jetbrains.kotlin.fir.declarations.FirFunction
+import org.jetbrains.kotlin.fir.declarations.FirValueParameter
+import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.fir.types.classId
 import org.jetbrains.kotlin.fir.types.coneType
+import org.jetbrains.kotlin.fir.types.isMarkedNullable
+import org.jetbrains.kotlin.fir.types.varargElementType
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.expressions.IrDeclarationReference
 import org.jetbrains.kotlin.name.CallableId
@@ -45,5 +50,22 @@ context(context: CheckerContext)
 inline val session get() = context.session
 
 fun FirTypeRef.isStringTemplate(): Boolean {
-    return coneType.classId == Symbols.StringTemplate
+    return coneType.varargElementType().classId == Symbols.StringTemplate
 }
+
+fun FirTypeRef.isNullableStringTemplate(): Boolean {
+    val elementType = coneType.varargElementType()
+    return elementType.classId == Symbols.StringTemplate && elementType.isMarkedNullable
+}
+
+fun FirValueParameter.isStringTemplate(): Boolean = returnTypeRef.isStringTemplate()
+
+fun FirFunction.isInterpolator(): Boolean =
+    valueParameters.any { it.returnTypeRef.isStringTemplate() } ||
+            contextParameters.any { it.returnTypeRef.isStringTemplate() } ||
+            receiverParameter?.typeRef?.isStringTemplate() == true
+
+fun FirFunctionSymbol<*>.isInterpolator(): Boolean =
+    valueParameterSymbols.any { it.resolvedReturnTypeRef.isStringTemplate() } ||
+            contextParameterSymbols.any { it.resolvedReturnTypeRef.isStringTemplate() } ||
+            receiverParameterSymbol?.calculateResolvedTypeRef()?.isStringTemplate() == true

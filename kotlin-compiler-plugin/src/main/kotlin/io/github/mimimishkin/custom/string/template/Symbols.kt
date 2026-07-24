@@ -13,7 +13,7 @@ internal object Symbols {
 
     val StringTemplate = dependencyPackage.topClassId("StringTemplate")
 
-    val OptIn = StandardClassIds.BASE_KOTLIN_PACKAGE.topClassId("OptIn")
+    val SimpleStringTemplate = dependencyPackage.topClassId("SimpleStringTemplate")
 
     val listOf = StandardClassIds.BASE_COLLECTIONS_PACKAGE.topCallableId("listOf")
 }
