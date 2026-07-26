@@ -41,5 +41,5 @@ annotation class FacadeInterpolatorCall
  * @see StringTemplate
  */
 @Retention(AnnotationRetention.BINARY)
-@Target(AnnotationTarget.FUNCTION)
+@Target(AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY)
 annotation class TemplateProcessor

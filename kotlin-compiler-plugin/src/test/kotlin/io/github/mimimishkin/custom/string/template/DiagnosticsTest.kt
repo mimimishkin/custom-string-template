@@ -350,4 +350,94 @@ class DiagnosticsTest : BaseTemplateTest() {
         val result = compile(file)
         assert(result.messages.contains("Cannot override template processor facade function.")) { result.messages }
     }
+
+    @Test
+    fun `template processor on var gives error`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            package test
+
+            import io.github.mimimishkin.custom.string.template.StringTemplate
+            import io.github.mimimishkin.custom.string.template.TemplateProcessor
+
+            class Processor {
+                @TemplateProcessor
+                var FOO: StringTemplate = TODO()
+            }
+        """)
+        val result = compile(file)
+        assert(result.messages.contains("@TemplateProcessor is not allowed on var properties, use val instead.")) { result.messages }
+    }
+
+    @Test
+    fun `template processor on val compiles`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            @file:OptIn(FacadeInterpolatorCall::class)
+
+            package test
+
+            import io.github.mimimishkin.custom.string.template.*
+
+            class Processor {
+                @TemplateProcessor
+                val FOO: StringTemplate = TODO()
+            }
+        """)
+        val result = compile(file)
+        assert(!result.messages.contains("@TemplateProcessor is not allowed on var")) { result.messages }
+    }
+
+    @Test
+    fun `property with StringTemplate type but no annotation gives warning`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            package test
+
+            import io.github.mimimishkin.custom.string.template.StringTemplate
+
+            class Processor {
+                val FOO: StringTemplate = TODO()
+            }
+        """)
+        val result = compile(file)
+        assert(result.exitCode == KotlinCompilation.ExitCode.OK) { result.messages }
+        assert(result.messages.contains("Did you forget to annotate your fun with @TemplateProcessor?")) { result.messages }
+    }
+
+    @Test
+    fun `annotation on property without StringTemplate type gives warning`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            package test
+
+            import io.github.mimimishkin.custom.string.template.TemplateProcessor
+
+            class Processor {
+                @TemplateProcessor
+                val FOO: String = "hello"
+            }
+        """)
+        val result = compile(file)
+        assert(result.exitCode == KotlinCompilation.ExitCode.OK) { result.messages }
+        assert(result.messages.contains("@TemplateProcessor without any StringTemplate param.")) { result.messages }
+    }
+
+    @Test
+    fun `override property with template processor gives facade override error`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            @file:OptIn(FacadeInterpolatorCall::class)
+
+            package test
+
+            import io.github.mimimishkin.custom.string.template.*
+
+            interface Base {
+                val FOO: StringTemplate
+            }
+
+            class Impl : Base {
+                @TemplateProcessor
+                override val FOO: StringTemplate = TODO()
+            }
+        """)
+        val result = compile(file)
+        assert(result.messages.contains("Cannot override template processor facade function.")) { result.messages }
+    }
 }

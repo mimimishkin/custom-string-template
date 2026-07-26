@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.declarations.FirFunction
+import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.types.FirTypeRef
@@ -69,3 +70,7 @@ fun FirFunctionSymbol<*>.isInterpolator(): Boolean =
     valueParameterSymbols.any { it.resolvedReturnTypeRef.isStringTemplate() } ||
             contextParameterSymbols.any { it.resolvedReturnTypeRef.isStringTemplate() } ||
             receiverParameterSymbol?.calculateResolvedTypeRef()?.isStringTemplate() == true
+
+fun FirProperty.isInterpolator(): Boolean =
+    returnTypeRef.isStringTemplate() ||
+            receiverParameter?.typeRef?.isStringTemplate() == true

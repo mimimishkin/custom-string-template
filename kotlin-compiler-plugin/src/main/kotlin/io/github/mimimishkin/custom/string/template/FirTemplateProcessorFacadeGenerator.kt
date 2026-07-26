@@ -6,14 +6,17 @@ import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.FirFunctionTarget
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.copy
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.builder.*
+import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.declarations.utils.isActual
 import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotationCall
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
 import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
 import org.jetbrains.kotlin.fir.extensions.*
 import org.jetbrains.kotlin.fir.extensions.predicate.LookupPredicate
+import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.resolve.toSymbol
@@ -131,18 +134,23 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
 
         resolvePhase = FirResolvePhase.BODY_RESOLVE
         origin = FirDeclarationOrigin.Plugin(TemplateProcessorFacade)
-        moduleData = original.moduleData
+        moduleData = session.moduleData
         source = null
 
         if (isFunction) {
             val currentStatus = status
-            if (currentStatus !is FirResolvedDeclarationStatus) {
-                status = org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl(
-                    currentStatus.visibility.takeIf { it != Visibilities.Unknown } ?: Visibilities.Public,
-                    Modality.FINAL,
-                    EffectiveVisibility.Public
-                )
-            }
+            status = FirResolvedDeclarationStatusImpl(
+                currentStatus.visibility.takeIf { it != Visibilities.Unknown } ?: Visibilities.Public,
+                Modality.FINAL,
+                EffectiveVisibility.Public
+            )
+        } else if (isProperty) {
+            val currentStatus = status
+            status = FirResolvedDeclarationStatusImpl(
+                currentStatus.visibility.takeIf { it != Visibilities.Unknown } ?: Visibilities.Public,
+                Modality.FINAL,
+                EffectiveVisibility.Public
+            )
         }
 
         val stringType = session.builtinTypes.stringType.coneType
@@ -245,7 +253,7 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
                 body = newBody
             }
             builder.getter = accessor()
-            if (builder.isVar) builder.setter = accessor()
+            builder.setter = null
         }
 
         return@with firFunctionTarget

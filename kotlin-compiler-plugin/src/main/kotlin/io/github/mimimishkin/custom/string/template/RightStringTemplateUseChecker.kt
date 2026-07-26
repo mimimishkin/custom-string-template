@@ -7,29 +7,35 @@ import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.checkers.declaration.DeclarationCheckers
 import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirFunctionChecker
+import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirPropertyChecker
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.ExpressionCheckers
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirExpressionChecker
 import org.jetbrains.kotlin.fir.analysis.extensions.FirAdditionalCheckersExtension
 import org.jetbrains.kotlin.fir.declarations.FirFunction
+import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.hasAnnotation
 import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.expressions.FirLiteralExpression
 import org.jetbrains.kotlin.fir.expressions.FirStringConcatenationCall
 import org.jetbrains.kotlin.fir.expressions.FirVarargArgumentsExpression
-import org.jetbrains.kotlin.fir.expressions.builder.FirStringConcatenationCallBuilder
 import org.jetbrains.kotlin.fir.extensions.FirDeclarationPredicateRegistrar
 import org.jetbrains.kotlin.fir.extensions.predicate.LookupPredicate
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.references.toResolvedFunctionSymbol
-import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
+import org.jetbrains.kotlin.fir.types.classId
+import org.jetbrains.kotlin.fir.types.coneType
+import org.jetbrains.kotlin.fir.types.isMarkedNullable
 import org.jetbrains.kotlin.types.ConstantValueKind
 
 class RightStringTemplateUseChecker(session: FirSession) : FirAdditionalCheckersExtension(session) {
     override val declarationCheckers = object : DeclarationCheckers() {
         override val functionCheckers: Set<FirFunctionChecker>
-            get() = setOf(DeclarationChecker)
+            get() = setOf(FunctionDeclarationChecker)
+
+        override val propertyCheckers: Set<FirPropertyChecker>
+            get() = setOf(PropertyDeclarationChecker)
     }
 
     override val expressionCheckers = object : ExpressionCheckers() {
@@ -42,7 +48,7 @@ class RightStringTemplateUseChecker(session: FirSession) : FirAdditionalCheckers
         register(predicate)
     }
 
-    object DeclarationChecker : FirFunctionChecker(MppCheckerKind.Common) {
+    object FunctionDeclarationChecker : FirFunctionChecker(MppCheckerKind.Common) {
         context(context: CheckerContext, reporter: DiagnosticReporter)
         override fun check(declaration: FirFunction) {
             val isInterpolator = declaration.isInterpolator()
@@ -99,7 +105,38 @@ class RightStringTemplateUseChecker(session: FirSession) : FirAdditionalCheckers
         }
     }
 
+    object PropertyDeclarationChecker : FirPropertyChecker(MppCheckerKind.Common) {
+        context(context: CheckerContext, reporter: DiagnosticReporter)
+        override fun check(declaration: FirProperty) {
+            val isInterpolator = declaration.isInterpolator()
+            val markedInterpolator = declaration.hasAnnotation(Symbols.TemplateProcessor, session)
+
+            if (!isInterpolator && !markedInterpolator) return
+
+            if (!markedInterpolator) {
+                reporter.reportOn(declaration.source, ErrorsCustomStringTemplate.NOT_A_TEMPLATE_PROCESSOR)
+                return
+            }
+
+            if (!isInterpolator) {
+                reporter.reportOn(declaration.source, ErrorsCustomStringTemplate.NOTHING_TO_INTERPOLATE)
+                return
+            }
+
+            if (declaration.isVar) {
+                reporter.reportOn(declaration.source, ErrorsCustomStringTemplate.MUTABLE_TEMPLATE_PROCESSOR)
+                return
+            }
+
+            if (declaration.status.isOverride) {
+                reporter.reportOn(declaration.source, ErrorsCustomStringTemplate.FACADE_OVERRIDE)
+            }
+        }
+    }
+
     inner class FunctionCallChecker(private val session: FirSession) : FirExpressionChecker<FirFunctionCall>(MppCheckerKind.Common) {
+        private val stringClassId = session.builtinTypes.stringType.coneType.classId
+
         context(context: CheckerContext, reporter: DiagnosticReporter)
         override fun check(expression: FirFunctionCall) {
             val functionSymbol = expression.calleeReference.toResolvedFunctionSymbol() ?: return
@@ -147,8 +184,38 @@ class RightStringTemplateUseChecker(session: FirSession) : FirAdditionalCheckers
             return session.predicateBasedProvider.getSymbolsByPredicate(predicate)
                 .filterIsInstance<FirFunctionSymbol<*>>()
                 .firstOrNull { orig ->
-                    // TODO: check parameters instead of isInterpolator
-                    orig.callableId == facadeSymbol.callableId && orig.isInterpolator()
+                    if (orig.callableId != facadeSymbol.callableId) return@firstOrNull false
+                    if (!orig.hasAnnotation(Symbols.TemplateProcessor, session)) return@firstOrNull false
+
+                    val origReceiver = orig.receiverParameterSymbol?.calculateResolvedTypeRef()?.coneType
+                    val facadeReceiver = facadeSymbol.receiverParameterSymbol?.calculateResolvedTypeRef()?.coneType
+                    val receiversMatch = if (origReceiver != null) {
+                        if (facadeReceiver == null) return@firstOrNull false
+                        if (origReceiver.classId == Symbols.StringTemplate) {
+                            facadeReceiver.classId == stringClassId &&
+                                facadeReceiver.isMarkedNullable == origReceiver.isMarkedNullable
+                        } else {
+                            origReceiver == facadeReceiver
+                        }
+                    } else {
+                        facadeReceiver == null
+                    }
+                    if (!receiversMatch) return@firstOrNull false
+
+                    val facadeParams = facadeSymbol.contextParameterSymbols + facadeSymbol.valueParameterSymbols
+                    val origParams = orig.contextParameterSymbols + orig.valueParameterSymbols
+                    if (facadeParams.size != origParams.size) return@firstOrNull false
+
+                    facadeParams.zip(origParams).all { (facadeParam, origParam) ->
+                        val origType = origParam.resolvedReturnTypeRef.coneType
+                        val facadeType = facadeParam.resolvedReturnTypeRef.coneType
+                        if (origType.classId == Symbols.StringTemplate) {
+                            facadeType.classId == stringClassId &&
+                                facadeType.isMarkedNullable == origType.isMarkedNullable
+                        } else {
+                            origType == facadeType
+                        }
+                    }
                 }
         }
     }
