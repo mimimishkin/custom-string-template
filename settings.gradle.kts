@@ -15,6 +15,6 @@ dependencyResolutionManagement {
     }
 }
 
-include("custom-string-template-gradle-plugin")
+include("gradle-plugin")
 include("kotlin-compiler-plugin")
 include("runtime-library")

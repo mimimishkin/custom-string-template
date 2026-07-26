@@ -1,7 +1,6 @@
 @file:Suppress("UnstableApiUsage")
 
 plugins {
-    // Apply the Java Gradle plugin development plugin to add support for developing Gradle plugins
     `java-gradle-plugin`
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.buildConfig)
@@ -25,7 +24,7 @@ gradlePlugin {
     vcsUrl = "https://github.com/mimimishkin/custom-string-template"
 
     // Define the plugin
-    val customStringTemplate by plugins.creating {
+    val customStringTemplate = plugins.register("custom-string-template") {
         id = "io.github.mimimishkin.custom-string-template"
         implementationClass = "io.github.mimimishkin.custom.string.template.CustomStringTemplatePlugin"
         displayName = "Custom StringTemplate"
