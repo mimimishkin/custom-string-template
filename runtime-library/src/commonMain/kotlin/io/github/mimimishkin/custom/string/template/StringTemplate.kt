@@ -4,7 +4,37 @@ import kotlin.jvm.JvmRecord
 import kotlin.jvm.JvmStatic
 
 /**
- * TODO:
+ * Represents a deconstructed string template, split into fixed [surroundings] fragments and
+ * interpolated [holes] values.
+ *
+ * This is the parameter type used by functions annotated with [TemplateProcessor]. The
+ * `custom-string-template` compiler plugin rewrites ordinary string literals and concatenations
+ * at call sites into [StringTemplate] instances:
+ *
+ * ```kotlin
+ * @TemplateProcessor
+ * fun process(template: StringTemplate): String = template.reconstruct()
+ *
+ * // "Hello, $name!" becomes:
+ * // SimpleStringTemplate(surroundings = ["Hello, ", "!"], holes = [name])
+ * process("Hello, $name!")
+ * ```
+ *
+ * ### Structure
+ *
+ * For a string `"$x + $y = ${x + y}"` the decomposition is:
+ * - [surroundings]: `["", " + ", " = ", ""]`
+ * - [holes]: `[x, y, x + y]`
+ *
+ * [surroundings] always has exactly one more element than [holes]. The first and last fragments
+ * (and any fragment between adjacent holes) may be empty strings.
+ *
+ * Use [reconstruct] to rejoin the parts into the original string result.
+ *
+ * Use the factory methods ([of] and [wholeOf]) to construct
+ * instances manually when the compiler plugin is not available.
+ *
+ * @see TemplateProcessor
  */
 interface StringTemplate {
     /**
@@ -19,6 +49,9 @@ interface StringTemplate {
      */
     val holes: List<Any?>
 
+    /**
+     * Reconstruct the original string template result as if it was not split into [surroundings] and [holes].
+     */
     fun reconstruct(): String = buildString {
         for (i in holes.indices) {
             append(surroundings[i])

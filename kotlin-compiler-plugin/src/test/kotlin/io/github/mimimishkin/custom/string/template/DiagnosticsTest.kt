@@ -115,7 +115,7 @@ class DiagnosticsTest : BaseTemplateTest() {
         assert(result.exitCode != KotlinCompilation.ExitCode.OK) { result.messages }
 
         todo {
-            // TODO: in kotlin 2.4.10 explicit context arguments are not stabilized yet, so this test should fail
+            // in kotlin 2.4.10 explicit context arguments are not stabilized yet, so this test should fail
             val result = compileAndGetResult(file)
             assert(result == "<div>hello</div>")
         }
