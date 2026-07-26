@@ -1,6 +1,6 @@
-import producer.FOO
+import producer.Main
 
 fun main() {
     val name = "Custom StringTemplate"
-    assert(FOO("Hello, $name") == "Hello, '$name'")
+    assert(Main().FOO("Hello, $name") == "Hello, '$name'")
 }

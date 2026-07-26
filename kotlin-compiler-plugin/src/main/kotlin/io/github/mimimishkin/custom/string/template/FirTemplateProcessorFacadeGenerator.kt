@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.fir.extensions.*
 import org.jetbrains.kotlin.fir.extensions.predicate.LookupPredicate
 import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
+import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
@@ -96,6 +97,7 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
             val firFunctionTarget: FirFunctionTarget
             val sibling = buildNamedFunctionCopy(original.fir) {
                 firFunctionTarget = configFacade(callableId, original)
+                dispatchReceiverType = context?.owner?.defaultType()
             }
             firFunctionTarget.bind(sibling)
             sibling.symbol
@@ -111,6 +113,7 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
             val firFunctionTarget: FirFunctionTarget
             val sibling = buildPropertyCopy(original.propertySymbol.fir) {
                 firFunctionTarget = configFacade(callableId, original)
+                dispatchReceiverType = context?.owner?.defaultType()
             }
             firFunctionTarget.bind(sibling.getter!!)
             sibling.symbol
