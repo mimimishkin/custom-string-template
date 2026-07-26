@@ -18,3 +18,5 @@ dependencyResolutionManagement {
 include("gradle-plugin")
 include("kotlin-compiler-plugin")
 include("runtime-library")
+include("test:producer")
+include("test:consumer")
