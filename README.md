@@ -41,6 +41,17 @@ fun StringBuilder.appendQuoted(string: String)
 Now you can call: `builder.appendQuoted("Hello, $name!")` and each param value gets wrapped in quotes
 automatically.
 
+## Naming convention
+
+Template processor functions and properties should use **SCREAMING_SNAKE_CASE** (e.g. `FOO`, `HTML_DIV`, `SQL`).
+
+This makes the call site read like a string literal processor rather than a regular function call, which is the
+intended usage pattern:
+
+```kotlin
+val result: String = FOO("Hello, $name!")
+```
+
 ## Important notes
 
 - `surroundings` and `holes` always follow the pattern:  
@@ -52,3 +63,4 @@ automatically.
 - The generated function is marked `@RequiresOptIn` (`@FacadeInterpolatorCall`) to prevent accidental usage without the
   plugin.
 - This works at IR level, so it's **Kotlin-only** – export to other languages is disabled.
+- Template processors can be used on `val` properties.
