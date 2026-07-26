@@ -9,17 +9,12 @@ import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.builder.*
 import org.jetbrains.kotlin.fir.declarations.utils.isActual
-import org.jetbrains.kotlin.fir.declarations.utils.isOverride
 import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotationCall
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
 import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
-import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
-import org.jetbrains.kotlin.fir.extensions.ExperimentalTopLevelDeclarationsGenerationApi
-import org.jetbrains.kotlin.fir.extensions.FirDeclarationGenerationExtension
-import org.jetbrains.kotlin.fir.extensions.FirDeclarationPredicateRegistrar
-import org.jetbrains.kotlin.fir.extensions.MemberGenerationContext
+import org.jetbrains.kotlin.fir.extensions.*
 import org.jetbrains.kotlin.fir.extensions.predicate.LookupPredicate
-import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
+import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
@@ -44,6 +39,7 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
         val provider = session.predicateBasedProvider
         @OptIn(SymbolInternals::class)
         provider.getSymbolsByPredicate(predicate)
+            .asSequence()
             .filterIsInstance<FirFunctionSymbol<*>>()
             .filter { it.isInterpolator() }
             .filter { !it.isActual }
@@ -211,9 +207,23 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
             }
         }
 
-        // @JvmSynthetic / @HideFromObjC / @JsExport.Ignore should be added here but
-        // require resolving stdlib/platform annotations which isn't reliable at FIR level.
-        // These are better added in IrTemplateProcessorFacadeUseActualizer at IR level.
+        val removableAnnotations = setOf(Symbols.ObjCName, Symbols.CName, Symbols.JsExport)
+        annotations.removeAll { it.toAnnotationClassId(session) in removableAnnotations }
+
+        val hidingAnnotations = listOf(Symbols.JvmSynthetic, Symbols.HideFromObjC, Symbols.JsExportIgnore)
+        for (classId in hidingAnnotations) {
+            val symbol = classId.toSymbol(session) ?: continue
+            annotations.add(buildAnnotationCall {
+                containingDeclarationSymbol = thisSymbol
+                annotationTypeRef = buildResolvedTypeRef {
+                    coneType = symbol.constructType()
+                }
+                calleeReference = buildResolvedNamedReference {
+                    name = classId.shortClassName
+                    resolvedSymbol = symbol
+                }
+            })
+        }
 
         val firFunctionTarget = FirFunctionTarget(null, false)
         val newBody = FirSingleExpressionBlock(

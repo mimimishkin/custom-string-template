@@ -1,5 +1,8 @@
 package io.github.mimimishkin.custom.string.template
 
+import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.StandardClassIds
 
 internal object Symbols {
@@ -16,4 +19,12 @@ internal object Symbols {
     val SimpleStringTemplate = dependencyPackage.topClassId("SimpleStringTemplate")
 
     val listOf = StandardClassIds.BASE_COLLECTIONS_PACKAGE.topCallableId("listOf")
+
+    val ObjCName = ClassId.topLevel(FqName("kotlin.native.ObjCName"))
+    val CName = ClassId.topLevel(FqName("kotlinx.cinterop.CName"))
+    val JsExport = ClassId.topLevel(FqName("kotlin.js.JsExport"))
+
+    val JvmSynthetic = ClassId.topLevel(FqName("kotlin.jvm.JvmSynthetic"))
+    val HideFromObjC = ClassId.topLevel(FqName("kotlin.native.HideFromObjC"))
+    val JsExportIgnore = JsExport.createNestedClassId(Name.identifier("Ignore"))
 }
