@@ -96,7 +96,6 @@ val result: String = "Hello, $name!".quoted
 
 Context parameters are supported as well, but it must be a string or string template literal, which is only possible 
 with explicit context arguments.
-```
 
 ## Naming convention
 
