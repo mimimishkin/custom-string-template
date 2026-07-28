@@ -2,7 +2,13 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel target="17">
+      <module name="custom-string-template.test.consumer" target="25" />
+      <module name="custom-string-template.test.consumer.main" target="25" />
+      <module name="custom-string-template.test.consumer.test" target="25" />
       <module name="custom-string-template.test.main" target="25" />
+      <module name="custom-string-template.test.producer" target="25" />
+      <module name="custom-string-template.test.producer.main" target="25" />
+      <module name="custom-string-template.test.producer.test" target="25" />
       <module name="custom-string-template.test.test" target="25" />
     </bytecodeTargetLevel>
   </component>

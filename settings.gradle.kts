@@ -22,5 +22,9 @@ plugins {
 include("runtime-library")
 include("kotlin-compiler-plugin")
 include("gradle-plugin")
-include("test:producer")
-include("test:consumer")
+
+val pluginDir = file("${System.getProperty("user.home")}/.m2/repository/io/github/mimimishkin/custom-string-template")
+if (pluginDir.exists()) {
+    include("test:producer")
+    include(":test:consumer")
+}
