@@ -9,15 +9,15 @@ binaryCompatibilityValidator = "0.18.1"
 buildConfig = "6.0.10"
 
 # https://github.com/mimimishkin/custom-string-template
-customStringTemplate = "0.0.1"
+customStringTemplate = "0.1.0"
 
-agp = "9.3.0"
+agp = "9.3.1"
 
 # https://github.com/google/auto/blob/main/service/README.md
 autoService = "1.1.1"
 
 # https://github.com/google/ksp
-ksp = "2.3.9"
+ksp = "2.3.10"
 
 # https://github.com/ZacSweers/auto-service-ksp
 autoServiceKsp = "1.2.0"
@@ -38,7 +38,7 @@ zacsweers-autoServiceKsp = { group = "dev.zacsweers.autoservice", name = "auto-s
 zacsweers-kctFork = { group = "dev.zacsweers.kctfork", name = "core", version.ref = "kct" }
 # this
 customStringTemplate-runtime = { group = "io.github.mimimishkin", name = "custom-string-template-runtime", version.ref = "customStringTemplate" }
-customStringTemplate-compilerPlugin = { group = "io.github.mimimishkin", name = "custom-string-template", version.ref = "customStringTemplate" }
+customStringTemplate-compilerPlugin = { group = "io.github.mimimishkin", name = "custom-string-template-compiler-plugin", version.ref = "customStringTemplate" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

@@ -8,9 +8,10 @@ kotlin {
     jvmToolchain(17)
 }
 
-group = "io.github.mimimishkin"
+val compilerPlugin = libs.customStringTemplate.compilerPlugin.get()
+group = compilerPlugin.group
+version = libs.versions.customStringTemplate.get()
 description = "Allows to create a string template processors like modern Java does."
-version = "0.0.1"
 
 dependencies {
     compileOnly(libs.kotlin.compiler)
@@ -18,11 +19,36 @@ dependencies {
     ksp(libs.zacsweers.autoServiceKsp)
 
     testImplementation(kotlin("test"))
-    testImplementation(libs.customStringTemplate.runtime)
+    testImplementation(project(":runtime-library"))
     testImplementation(libs.zacsweers.kctFork)
 }
 
 mavenPublishing {
-    val compilerPlugin = libs.customStringTemplate.compilerPlugin.get()
-    coordinates(artifactId = compilerPlugin.name)
+    coordinates(groupId = group.toString(), artifactId = compilerPlugin.name, version = version.toString())
+
+    publishToMavenCentral(automaticRelease = false)
+    signAllPublications()
+
+    pom {
+        name = "Custom StringTemplate compiler plugin"
+        description = project.description
+        inceptionYear = "2026"
+        url = "https://github.com/mimimishkin/custom-string-template"
+        licenses {
+            license {
+                name = "MIT"
+            }
+        }
+        developers {
+            developer {
+                id = "mimimishkin"
+                name = "Mimimishkin"
+                email = "printf.mika@gmail.com"
+            }
+        }
+        scm {
+            url = "https://github.com/mimimishkin/custom-string-template"
+            connection = "scm:git:git://github.com/mimimishkin/custom-string-template"
+        }
+    }
 }

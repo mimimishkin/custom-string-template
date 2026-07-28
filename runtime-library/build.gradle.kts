@@ -9,9 +9,10 @@ plugins {
     alias(libs.plugins.mavenPublish)
 }
 
-group = "io.github.mimimishkin"
-description = "Annotation and a class required to write a string template processor."
-version = "0.0.1"
+val runtimeLibrary = libs.customStringTemplate.runtime.get()
+group = runtimeLibrary.group
+version = runtimeLibrary.version!!
+description = "Annotation and a class required to write a custom string template processor."
 
 kotlin {
     jvmToolchain(17)
@@ -29,7 +30,13 @@ kotlin {
     iosSimulatorArm64()
     iosX64()
 
-    js().nodejs()
+    listOf(js(), wasmJs()).forEach {
+        it.nodejs()
+        it.browser()
+    }
+    wasmWasi {
+        nodejs()
+    }
 
     jvm()
 
@@ -43,9 +50,6 @@ kotlin {
     tvosArm64()
     tvosSimulatorArm64()
 
-    wasmJs().nodejs()
-    wasmWasi().nodejs()
-
     watchosArm32()
     watchosArm64()
     watchosDeviceArm64()
@@ -53,6 +57,31 @@ kotlin {
 }
 
 mavenPublishing {
-    val runtimeLibrary = libs.customStringTemplate.runtime.get()
-    coordinates(artifactId = runtimeLibrary.name)
+    coordinates(groupId = group.toString(), artifactId = runtimeLibrary.name, version = version.toString())
+
+    publishToMavenCentral(automaticRelease = false)
+    signAllPublications()
+
+    pom {
+        name = "Custom StringTemplate runtime"
+        description = project.description
+        inceptionYear = "2026"
+        url = "https://github.com/mimimishkin/custom-string-template"
+        licenses {
+            license {
+                name = "MIT"
+            }
+        }
+        developers {
+            developer {
+                id = "mimimishkin"
+                name = "Mimimishkin"
+                email = "printf.mika@gmail.com"
+            }
+        }
+        scm {
+            url = "https://github.com/mimimishkin/custom-string-template"
+            connection = "scm:git:git://github.com/mimimishkin/custom-string-template"
+        }
+    }
 }
