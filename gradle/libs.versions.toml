@@ -9,7 +9,7 @@ binaryCompatibilityValidator = "0.18.1"
 buildConfig = "6.0.10"
 
 # https://github.com/mimimishkin/custom-string-template
-customStringTemplate = "0.1.0"
+customStringTemplate = "2.4.10-0.1.1"
 
 agp = "9.3.1"
 

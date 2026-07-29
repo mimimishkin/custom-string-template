@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    id("io.github.mimimishkin.custom-string-template") version "0.1.0"
+    id("io.github.mimimishkin.custom-string-template") version "2.4.10-0.1.1"
 }
 
 kotlin {
