@@ -816,7 +816,6 @@ class IrFacadeActualizationTest : BaseTemplateTest() {
         assertFailsToCompile(file)
     }
 
-    // TODO: this MUST work without test changes. DO NOT REMOVE
     @Test
     fun `override with annotation in both superclass and subclass compiles`() {
         val file = SourceFile.kotlin("Test.kt", $$"""
