@@ -4,9 +4,7 @@ import org.jetbrains.kotlin.GeneratedDeclarationKey
 import org.jetbrains.kotlin.descriptors.EffectiveVisibility
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
-import org.jetbrains.kotlin.fir.FirFunctionTarget
 import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.fir.copy
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.builder.*
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
@@ -94,12 +92,10 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
     @OptIn(SymbolInternals::class)
     override fun generateFunctions(callableId: CallableId, context: MemberGenerationContext?): List<FirNamedFunctionSymbol> {
         return originalBy(callableId).filterIsInstance<FirNamedFunctionSymbol>().map { original ->
-            val firFunctionTarget: FirFunctionTarget
             val sibling = buildNamedFunctionCopy(original.fir) {
-                firFunctionTarget = configFacade(callableId, original)
+                configFacade(callableId)
                 dispatchReceiverType = context?.owner?.defaultType()
             }
-            firFunctionTarget.bind(sibling)
             sibling.symbol
         }
     }
@@ -110,17 +106,15 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
     @OptIn(SymbolInternals::class)
     override fun generateProperties(callableId: CallableId, context: MemberGenerationContext?): List<FirPropertySymbol> {
         return originalBy(callableId).filterIsInstance<FirPropertyAccessorSymbol>().map { original ->
-            val firFunctionTarget: FirFunctionTarget
             val sibling = buildPropertyCopy(original.propertySymbol.fir) {
-                firFunctionTarget = configFacade(callableId, original)
+                configFacade(callableId)
                 dispatchReceiverType = context?.owner?.defaultType()
             }
-            firFunctionTarget.bind(sibling.getter!!)
             sibling.symbol
         }
     }
 
-    private fun FirDeclarationBuilder.configFacade(callableId: CallableId, original: FirFunctionSymbol<*>) = with(session.typeContext) {
+    private fun FirDeclarationBuilder.configFacade(callableId: CallableId): Unit = with(session.typeContext) {
         val builder = this@configFacade
         val isProperty = builder is FirPropertyBuilder
         val isFunction = builder is FirNamedFunctionBuilder
@@ -236,7 +230,6 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
             })
         }
 
-        val firFunctionTarget = FirFunctionTarget(null, false)
         val newBody = FirSingleExpressionBlock(
             buildFunctionCall {
                 coneTypeOrNull = session.builtinTypes.nothingType.coneType
@@ -258,7 +251,5 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
             builder.getter = accessor()
             builder.setter = null
         }
-
-        return@with firFunctionTarget
     }
 }
