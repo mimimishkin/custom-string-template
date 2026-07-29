@@ -192,6 +192,7 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
             }
             is FirPropertyBuilder -> {
                 builder.receiverParameter = builder.receiverParameter?.withStringType()
+                builder.contextParameters.replaceAll { it.withStringType() }
             }
         }
 
