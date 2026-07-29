@@ -816,6 +816,75 @@ class IrFacadeActualizationTest : BaseTemplateTest() {
         assertFailsToCompile(file)
     }
 
+    // TODO: this MUST work without test changes. DO NOT REMOVE
+    @Test
+    fun `override with annotation in both superclass and subclass compiles`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            @file:OptIn(FacadeInterpolatorCall::class)
+
+            package test
+
+            import io.github.mimimishkin.custom.string.template.*
+
+            open class Base {
+                @TemplateProcessor
+                open fun FOO(string: StringTemplate): String = string.reconstruct()
+            }
+
+            class Derived : Base() {
+                @TemplateProcessor
+                override fun FOO(string: StringTemplate): String = string.reconstruct().uppercase()
+            }
+
+            fun result(): String = Derived().FOO("hello")
+        """)
+        assert(compileAndGetResult(file) == "HELLO")
+    }
+
+    @Test
+    fun `interface without annotation implemented with template processor generates facade`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            @file:OptIn(FacadeInterpolatorCall::class)
+
+            package test
+
+            import io.github.mimimishkin.custom.string.template.*
+
+            interface Base {
+                fun FOO(string: StringTemplate): String
+            }
+
+            class Impl : Base {
+                @TemplateProcessor
+                override fun FOO(string: StringTemplate): String = string.reconstruct().uppercase()
+            }
+
+            fun result(): String = Impl().FOO("hello")
+        """)
+        assert(compileAndGetResult(file) == "HELLO")
+    }
+
+    @Test
+    fun `interface with annotation inherited by subclass without override works`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            @file:OptIn(FacadeInterpolatorCall::class)
+
+            package test
+
+            import io.github.mimimishkin.custom.string.template.*
+
+            interface Processor {
+                @TemplateProcessor
+                fun FOO(string: StringTemplate): String = string.reconstruct()
+            }
+
+            class Impl : Processor
+
+            fun result(): String = Impl().FOO("hello")
+        """)
+        assert(compileAndGetResult(file) == "hello")
+    }
+
     @Test
     fun `two variables concatenation does not compile`() {
         val file = SourceFile.kotlin("Test.kt", $$"""

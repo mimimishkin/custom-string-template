@@ -128,8 +128,6 @@ implementation files where both kinds coexist.
 - **No default parameter values** – parameters with defaults would make it horrible for the plugin to fight with 
 - synthetic `$default` function.
 - **`val` only** – `@TemplateProcessor` cannot be applied to `var` properties.
-- **No overrides** – applying `@TemplateProcessor` to an overriding function or property is an error. The plugin needs
-  a single canonical definition to generate the facade from.
 - **No local declarations** – template processors must be declared at class or file level.
 - **Kotlin only** – the plugin operates at the IR level, so generated facades are not available from Java, JavaScript,
   or other targets. The generated are hided from other platforms.

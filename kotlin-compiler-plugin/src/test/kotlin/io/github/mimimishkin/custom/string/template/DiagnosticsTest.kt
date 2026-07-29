@@ -195,7 +195,7 @@ class DiagnosticsTest : BaseTemplateTest() {
     }
 
     @Test
-    fun `override with template processor in subclass gives facade override error`() {
+    fun `override with template processor in subclass compiles when superclass not annotated`() {
         val file = SourceFile.kotlin("Test.kt", $$"""
             @file:OptIn(FacadeInterpolatorCall::class)
 
@@ -211,13 +211,14 @@ class DiagnosticsTest : BaseTemplateTest() {
                 @TemplateProcessor
                 override fun FOO(string: StringTemplate): String = string.reconstruct()
             }
+
+            fun check() { val result: String = Impl().FOO("test") }
         """)
-        val result = compile(file)
-        assert(result.messages.contains("Cannot override template processor facade function.")) { result.messages }
+        assertCompiles(file)
     }
 
     @Test
-    fun `override with template processor in open subclass gives facade override error`() {
+    fun `override with template processor in subclass compiles when superclass also annotated`() {
         val file = SourceFile.kotlin("Test.kt", $$"""
             @file:OptIn(FacadeInterpolatorCall::class)
 
@@ -234,9 +235,10 @@ class DiagnosticsTest : BaseTemplateTest() {
                 @TemplateProcessor
                 override fun FOO(string: StringTemplate): String = string.reconstruct()
             }
+
+            fun check() { val result: String = Derived().FOO("test") }
         """)
-        val result = compile(file)
-        assert(result.messages.contains("Cannot override template processor facade function.")) { result.messages }
+        assertCompiles(file)
     }
 
     @Test
@@ -259,7 +261,6 @@ class DiagnosticsTest : BaseTemplateTest() {
         """)
         val result = compile(file)
         assert(result.messages.contains("Did you forget to annotate your fun with @TemplateProcessor?")) { result.messages }
-        assert(!result.messages.contains("Cannot override template processor facade function.")) { result.messages }
     }
 
     @Test
@@ -277,9 +278,7 @@ class DiagnosticsTest : BaseTemplateTest() {
                 override fun greet(): String = "hi"
             }
         """)
-        val result = compile(file)
-        assert(result.exitCode == KotlinCompilation.ExitCode.OK) { result.messages }
-        assert(!result.messages.contains("Cannot override")) { result.messages }
+        assertCompiles(file)
     }
 
     @Test
@@ -303,7 +302,7 @@ class DiagnosticsTest : BaseTemplateTest() {
     }
 
     @Test
-    fun `override of template processor function through intermediate class gives facade override error`() {
+    fun `override of template processor function through intermediate class compiles`() {
         val file = SourceFile.kotlin("Test.kt", $$"""
             @file:OptIn(FacadeInterpolatorCall::class)
 
@@ -322,33 +321,10 @@ class DiagnosticsTest : BaseTemplateTest() {
                 @TemplateProcessor
                 override fun FOO(string: StringTemplate): String = string.reconstruct()
             }
+
+            fun check() { val result: String = Derived().FOO("test") }
         """)
-        val result = compile(file)
-        assert(result.messages.contains("Cannot override template processor facade function.")) { result.messages }
-    }
-
-    @Test
-    fun `override with template processor in interface implementation gives facade override error`() {
-        val file = SourceFile.kotlin("Test.kt", $$"""
-            @file:OptIn(FacadeInterpolatorCall::class)
-
-            package test
-
-            import io.github.mimimishkin.custom.string.template.*
-
-            interface Processor {
-                fun FOO(string: StringTemplate): String
-            }
-
-            abstract class AbstractImpl : Processor {
-                @TemplateProcessor
-                override fun FOO(string: StringTemplate): String = string.reconstruct()
-            }
-
-            class ConcreteImpl : AbstractImpl()
-        """)
-        val result = compile(file)
-        assert(result.messages.contains("Cannot override template processor facade function.")) { result.messages }
+        assertCompiles(file)
     }
 
     @Test
@@ -382,8 +358,7 @@ class DiagnosticsTest : BaseTemplateTest() {
                 val FOO: StringTemplate = TODO()
             }
         """)
-        val result = compile(file)
-        assert(!result.messages.contains("@TemplateProcessor is not allowed on var")) { result.messages }
+        assertCompiles(file)
     }
 
     @Test
@@ -420,7 +395,7 @@ class DiagnosticsTest : BaseTemplateTest() {
     }
 
     @Test
-    fun `override property with template processor gives facade override error`() {
+    fun `override property with template processor compiles`() {
         val file = SourceFile.kotlin("Test.kt", $$"""
             @file:OptIn(FacadeInterpolatorCall::class)
 
@@ -437,7 +412,6 @@ class DiagnosticsTest : BaseTemplateTest() {
                 override val FOO: StringTemplate = TODO()
             }
         """)
-        val result = compile(file)
-        assert(result.messages.contains("Cannot override template processor facade function.")) { result.messages }
+        assertCompiles(file)
     }
 }

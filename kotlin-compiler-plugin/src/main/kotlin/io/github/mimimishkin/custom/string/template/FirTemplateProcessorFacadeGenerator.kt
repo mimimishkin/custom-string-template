@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.builder.*
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.declarations.utils.isActual
+import org.jetbrains.kotlin.fir.declarations.utils.isOverride
 import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotationCall
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
 import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
@@ -45,7 +46,6 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
             .filterIsInstance<FirFunctionSymbol<*>>()
             .filter { it.isInterpolator() }
             .filter { !it.isActual }
-            .filter { !it.fir.status.isOverride }
             .groupBy { it.callableId.classId }
             .mapValues { (_, symbol) ->
                 symbol.groupByTo(mutableMapOf()) { it.callableId }
@@ -91,13 +91,15 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
      */
     @OptIn(SymbolInternals::class)
     override fun generateFunctions(callableId: CallableId, context: MemberGenerationContext?): List<FirNamedFunctionSymbol> {
-        return originalBy(callableId).filterIsInstance<FirNamedFunctionSymbol>().map { original ->
-            val sibling = buildNamedFunctionCopy(original.fir) {
-                configFacade(callableId)
-                dispatchReceiverType = context?.owner?.defaultType()
+        return originalBy(callableId)
+            .filterIsInstance<FirNamedFunctionSymbol>()
+            .map { original ->
+                val sibling = buildNamedFunctionCopy(original.fir) {
+                    configFacade(callableId)
+                    dispatchReceiverType = context?.owner?.defaultType()
+                }
+                sibling.symbol
             }
-            sibling.symbol
-        }
     }
 
     /**
@@ -105,13 +107,15 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
      */
     @OptIn(SymbolInternals::class)
     override fun generateProperties(callableId: CallableId, context: MemberGenerationContext?): List<FirPropertySymbol> {
-        return originalBy(callableId).filterIsInstance<FirPropertyAccessorSymbol>().map { original ->
-            val sibling = buildPropertyCopy(original.propertySymbol.fir) {
-                configFacade(callableId)
-                dispatchReceiverType = context?.owner?.defaultType()
+        return originalBy(callableId)
+            .filterIsInstance<FirPropertyAccessorSymbol>()
+            .map { original ->
+                val sibling = buildPropertyCopy(original.propertySymbol.fir) {
+                    configFacade(callableId)
+                    dispatchReceiverType = context?.owner?.defaultType()
+                }
+                sibling.symbol
             }
-            sibling.symbol
-        }
     }
 
     private fun FirDeclarationBuilder.configFacade(callableId: CallableId): Unit = with(session.typeContext) {
@@ -138,14 +142,14 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
             val currentStatus = status
             status = FirResolvedDeclarationStatusImpl(
                 currentStatus.visibility.takeIf { it != Visibilities.Unknown } ?: Visibilities.Public,
-                Modality.FINAL,
+                currentStatus.modality ?: Modality.FINAL,
                 EffectiveVisibility.Public
             )
         } else if (isProperty) {
             val currentStatus = status
             status = FirResolvedDeclarationStatusImpl(
                 currentStatus.visibility.takeIf { it != Visibilities.Unknown } ?: Visibilities.Public,
-                Modality.FINAL,
+                currentStatus.modality ?: Modality.FINAL,
                 EffectiveVisibility.Public
             )
         }
@@ -155,44 +159,44 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
         fun FirTypeRef.toNullableString(): ConeKotlinType =
             stringType.withNullability(coneType.isMarkedNullable) as ConeKotlinType
 
-        fun FirReceiverParameter.withStringType(): FirReceiverParameter =
+        fun FirReceiverParameter.toStringIfTemplate(): FirReceiverParameter =
             if (typeRef.isStringTemplate()) buildReceiverParameterCopy(this) {
                 origin = FirDeclarationOrigin.Plugin(TemplateProcessorFacade)
                 source = null
                 symbol = FirReceiverParameterSymbol()
-                typeRef = this@withStringType.typeRef.withReplacedConeType(
-                    this@withStringType.typeRef.toNullableString()
+                typeRef = this@toStringIfTemplate.typeRef.withReplacedConeType(
+                    this@toStringIfTemplate.typeRef.toNullableString()
                 )
             } else this
 
-        fun FirValueParameter.withStringType(): FirValueParameter =
+        fun FirValueParameter.toStringIfTemplate(): FirValueParameter =
             if (returnTypeRef.isStringTemplate()) buildValueParameterCopy(this) {
                 origin = FirDeclarationOrigin.Plugin(TemplateProcessorFacade)
                 source = null
                 symbol = FirValueParameterSymbol()
-                returnTypeRef = if (this@withStringType.isVararg) {
-                    val arrayType = this@withStringType.returnTypeRef.coneType as ConeClassLikeType
+                returnTypeRef = if (this@toStringIfTemplate.isVararg) {
+                    val arrayType = this@toStringIfTemplate.returnTypeRef.coneType as ConeClassLikeType
                     val elementType = arrayType.varargElementType()
                     val newElementType = stringType.withNullability(elementType.isMarkedNullable) as ConeKotlinType
-                    this@withStringType.returnTypeRef.withReplacedConeType(
+                    this@toStringIfTemplate.returnTypeRef.withReplacedConeType(
                         arrayType.withArguments(arrayOf(ConeKotlinTypeProjectionOut(newElementType)))
                     )
                 } else {
-                    this@withStringType.returnTypeRef.withReplacedConeType(
-                        this@withStringType.returnTypeRef.toNullableString()
+                    this@toStringIfTemplate.returnTypeRef.withReplacedConeType(
+                        this@toStringIfTemplate.returnTypeRef.toNullableString()
                     )
                 }
             } else this
 
         when (builder) {
             is FirNamedFunctionBuilder -> {
-                builder.receiverParameter = builder.receiverParameter?.withStringType()
-                builder.valueParameters.replaceAll { it.withStringType() }
-                builder.contextParameters.replaceAll { it.withStringType() }
+                builder.receiverParameter = builder.receiverParameter?.toStringIfTemplate()
+                builder.valueParameters.replaceAll { it.toStringIfTemplate() }
+                builder.contextParameters.replaceAll { it.toStringIfTemplate() }
             }
             is FirPropertyBuilder -> {
-                builder.receiverParameter = builder.receiverParameter?.withStringType()
-                builder.contextParameters.replaceAll { it.withStringType() }
+                builder.receiverParameter = builder.receiverParameter?.toStringIfTemplate()
+                builder.contextParameters.replaceAll { it.toStringIfTemplate() }
             }
         }
 

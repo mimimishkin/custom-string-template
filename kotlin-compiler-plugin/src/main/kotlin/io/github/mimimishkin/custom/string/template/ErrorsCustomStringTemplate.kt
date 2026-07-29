@@ -14,7 +14,6 @@ object ErrorsCustomStringTemplate : KtDiagnosticsContainer() {
             it.put(LOCAL_TEMPLATE_PROCESSOR, "Template processors can't be local yet.")
             it.put(NULLABLE_STRING_TEMPLATE, "StringTemplate parameter must not be nullable.")
             it.put(DEFAULT_PARAM_IN_TEMPLATE_PROCESSOR, "Template processors cannot have default parameter values.")
-            it.put(FACADE_OVERRIDE, "Cannot override template processor facade function.")
             it.put(MUTABLE_TEMPLATE_PROCESSOR, "@TemplateProcessor is not allowed on var properties, use val instead.")
         }
     }
@@ -32,8 +31,6 @@ object ErrorsCustomStringTemplate : KtDiagnosticsContainer() {
     val NULLABLE_STRING_TEMPLATE by error0<KtElement>()
 
     val DEFAULT_PARAM_IN_TEMPLATE_PROCESSOR by error0<KtElement>()
-
-    val FACADE_OVERRIDE by error0<KtElement>()
 
     val MUTABLE_TEMPLATE_PROCESSOR by error0<KtElement>()
 }

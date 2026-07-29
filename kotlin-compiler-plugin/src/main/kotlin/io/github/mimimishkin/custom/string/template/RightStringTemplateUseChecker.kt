@@ -93,15 +93,6 @@ class RightStringTemplateUseChecker(session: FirSession) : FirAdditionalCheckers
                     reporter.reportOn(param.source, ErrorsCustomStringTemplate.DEFAULT_PARAM_IN_TEMPLATE_PROCESSOR)
                 }
             }
-
-            if (declaration.status.isOverride) {
-                checkFacadeOverride(declaration)
-            }
-        }
-
-        context(context: CheckerContext, reporter: DiagnosticReporter)
-        private fun checkFacadeOverride(declaration: FirFunction) {
-            reporter.reportOn(declaration.source, ErrorsCustomStringTemplate.FACADE_OVERRIDE)
         }
     }
 
@@ -126,10 +117,6 @@ class RightStringTemplateUseChecker(session: FirSession) : FirAdditionalCheckers
             if (declaration.isVar) {
                 reporter.reportOn(declaration.source, ErrorsCustomStringTemplate.MUTABLE_TEMPLATE_PROCESSOR)
                 return
-            }
-
-            if (declaration.status.isOverride) {
-                reporter.reportOn(declaration.source, ErrorsCustomStringTemplate.FACADE_OVERRIDE)
             }
         }
     }

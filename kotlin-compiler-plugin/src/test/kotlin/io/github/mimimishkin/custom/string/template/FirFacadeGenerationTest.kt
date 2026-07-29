@@ -624,6 +624,135 @@ class FirFacadeGenerationTest : BaseTemplateTest() {
     }
 
     @Test
+    fun `generic top-level processor generates facade`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            @file:OptIn(FacadeInterpolatorCall::class)
+
+            package test
+
+            import io.github.mimimishkin.custom.string.template.*
+
+            @TemplateProcessor
+            fun <T> FOO(string: StringTemplate, value: T): String = string.reconstruct() + value.toString()
+
+            fun check() { val result: String = FOO("test", 42) }
+        """)
+        assertCompiles(file)
+    }
+
+    @Test
+    fun `generic class processor generates facade`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            @file:OptIn(FacadeInterpolatorCall::class)
+
+            package test
+
+            import io.github.mimimishkin.custom.string.template.*
+
+            class Processor<T>(val value: T) {
+                @TemplateProcessor
+                fun FOO(string: StringTemplate): String = string.reconstruct() + value.toString()
+            }
+
+            fun check() { val result: String = Processor(42).FOO("test") }
+        """)
+        assertCompiles(file)
+    }
+
+    @Test
+    fun `generic interface with template processor generates facade`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            @file:OptIn(FacadeInterpolatorCall::class)
+
+            package test
+
+            import io.github.mimimishkin.custom.string.template.*
+
+            interface Processor<T> {
+                @TemplateProcessor
+                fun FOO(string: StringTemplate, value: T): String
+            }
+
+            class Impl : Processor<String> {
+                override fun FOO(string: StringTemplate, value: String): String = string.reconstruct() + value
+            }
+
+            fun check() { val result: String = Impl().FOO("test", "!") }
+        """)
+        assertCompiles(file)
+    }
+
+    @Test
+    fun `interface with annotated override generates facade at subclass level`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            @file:OptIn(FacadeInterpolatorCall::class)
+
+            package test
+
+            import io.github.mimimishkin.custom.string.template.*
+
+            interface Base {
+                fun FOO(string: StringTemplate): String
+            }
+
+            class Impl : Base {
+                @TemplateProcessor
+                override fun FOO(string: StringTemplate): String = string.reconstruct()
+            }
+
+            fun check() { val result: String = Impl().FOO("test") }
+        """)
+        assertCompiles(file)
+    }
+
+    @Test
+    fun `override with annotation in superclass uses existing facade`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            @file:OptIn(FacadeInterpolatorCall::class)
+
+            package test
+
+            import io.github.mimimishkin.custom.string.template.*
+
+            open class Base {
+                @TemplateProcessor
+                open fun FOO(string: StringTemplate): String = string.reconstruct()
+            }
+
+            class Derived : Base() {
+                @TemplateProcessor
+                override fun FOO(string: StringTemplate): String = string.reconstruct().uppercase()
+            }
+
+            fun check() { val result: String = Derived().FOO("test") }
+        """)
+        assertCompiles(file)
+    }
+
+    @Test
+    fun `override without annotation uses superclass facade`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            @file:OptIn(FacadeInterpolatorCall::class)
+
+            package test
+
+            import io.github.mimimishkin.custom.string.template.*
+
+            open class Base {
+                @TemplateProcessor
+                open fun FOO(string: StringTemplate): String = string.reconstruct()
+            }
+
+            class Derived : Base() {
+                override fun FOO(string: StringTemplate): String = string.reconstruct().uppercase()
+            }
+
+            fun check() { val result: String = Derived().FOO("test") }
+        """)
+        assertCompiles(file)
+    }
+
+    @Test
     fun `plugin disabled does not generate facade`() {
         val file = SourceFile.kotlin("Test.kt", $$"""
             package test
