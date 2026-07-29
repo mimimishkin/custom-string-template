@@ -1,6 +1,19 @@
+[![Gradle Plugin](https://img.shields.io/maven-metadata/v?metadataUrl=https://plugins.gradle.org/m2/io/github/mimimishkin/custom-string-template/io.github.mimimishkin.custom-string-template.gradle.plugin/maven-metadata.xml&logo=gradle&logoColor=white&label=Gradle%20Plugin&color=02303A)](https://plugins.gradle.org/plugin/io.github.mimimishkin.custom-string-template)
+[![Kotlin Multiplatform](https://img.shields.io/badge/Kotlin%20Multiplatform-2.4.10-7F52FF.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org/docs/multiplatform.html)
+[![License: MIT](https://img.shields.io/badge/License-MIT-A31F34.svg)](https://opensource.org/licenses/MIT)
+
 # Custom StringTemplate
 
 A Kotlin compiler plugin that lets you define custom string interpolation by writing a single function.
+
+## Usage
+
+To use it in your project, add this to `build.gradle.kts`:
+```kotlin
+plugins {
+    id("io.github.mimimishkin.custom-string-template") version "2.4.10-0.1.1"
+}
+```
 
 ## Motivation
 
