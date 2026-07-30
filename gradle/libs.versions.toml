@@ -3,7 +3,7 @@
 kotlin = "2.4.10"
 
 # https://github.com/mimimishkin/custom-string-template
-customStringTemplate = "2.4.10-0.1.1"
+customStringTemplate = "2.4.10-0.1.2"
 
 # https://github.com/Kotlin/binary-compatibility-validator
 binaryCompatibilityValidator = "0.18.1"

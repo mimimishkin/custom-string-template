@@ -11,7 +11,7 @@ A Kotlin compiler plugin that lets you define custom string interpolation by wri
 To use it in your project, add this to `build.gradle.kts`:
 ```kotlin
 plugins {
-    id("io.github.mimimishkin.custom-string-template") version "2.4.10-0.1.1"
+    id("io.github.mimimishkin.custom-string-template") version "2.4.10-0.1.2"
 }
 ```
 
