@@ -26,7 +26,7 @@ dependencies {
 mavenPublishing {
     coordinates(groupId = group.toString(), artifactId = compilerPlugin.name, version = version.toString())
 
-    publishToMavenCentral(automaticRelease = false)
+    publishToMavenCentral(automaticRelease = true)
     signAllPublications()
 
     pom {

@@ -10,7 +10,7 @@ plugins {
 
 val compilerPlugin = libs.customStringTemplate.compilerPlugin.get()
 group = compilerPlugin.group
-version = libs.versions.customStringTemplate.get()
+version = compilerPlugin.version!!
 description = "Allows to create a string template processors like modern Java does."
 
 kotlin {
@@ -42,36 +42,6 @@ buildConfig {
     buildConfigField<String>("PLUGIN_ID", "io.github.mimimishkin.custom.string.template")
     buildConfigField<String>("PLUGIN_GROUP", compilerPlugin.group)
     buildConfigField<String>("PLUGIN_ARTIFACT_ID", compilerPlugin.name)
-    buildConfigField<String?>("PLUGIN_VERSION", compilerPlugin.version)
+    buildConfigField<String>("PLUGIN_VERSION", compilerPlugin.version!!)
     buildConfigField<String>("RUNTIME_LIBRARY", runtime.toString())
-}
-
-mavenPublishing {
-    coordinates(groupId = group.toString(), artifactId = "custom-string-template", version = version.toString())
-
-    publishToMavenCentral(automaticRelease = false)
-    signAllPublications()
-
-    pom {
-        name = "Custom StringTemplate gradle plugin"
-        description = project.description
-        inceptionYear = "2026"
-        url = "https://github.com/mimimishkin/custom-string-template"
-        licenses {
-            license {
-                name = "MIT"
-            }
-        }
-        developers {
-            developer {
-                id = "mimimishkin"
-                name = "Mimimishkin"
-                email = "printf.mika@gmail.com"
-            }
-        }
-        scm {
-            url = "https://github.com/mimimishkin/custom-string-template"
-            connection = "scm:git:git://github.com/mimimishkin/custom-string-template"
-        }
-    }
 }

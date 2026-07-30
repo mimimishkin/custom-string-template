@@ -1,8 +1,9 @@
 name: Build and Publish
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - '**'
 
 env:
   ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
