@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="runtime-library-wasm-wasi-2.4.20-dev-6724-0.1.2">
+    <output-path>$PROJECT_DIR$/runtime-library/build/libs</output-path>
+    <root id="archive" name="runtime-library-wasm-wasi-2.4.20-dev-6724-0.1.2.jar">
+      <element id="module-output" name="custom-string-template.runtime-library.wasmWasiMain" />
+    </root>
+  </artifact>
+</component>

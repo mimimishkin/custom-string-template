@@ -5,6 +5,8 @@ pluginManagement {
         gradlePluginPortal()
         google()
         mavenLocal()
+        // for IDEA releses
+        maven { url = uri("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies") }
     }
 }
 dependencyResolutionManagement {
@@ -12,6 +14,8 @@ dependencyResolutionManagement {
         mavenCentral()
         google()
         mavenLocal()
+        // for IDEA releses
+        maven { url = uri("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies") }
     }
 }
 

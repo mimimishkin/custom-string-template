@@ -29,14 +29,29 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Check Kotlin version
+        id: kotlin_version
+        shell: bash
+        run: |
+          VERSION=$(grep '^kotlin =' gradle/libs.versions.toml | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "is_idea_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_idea_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish runtime library to Maven Central
+        if: steps.kotlin_version.outputs.is_idea_build == 'false'
         run: ./gradlew :runtime-library:publishAllPublicationsToMavenCentralRepository
 
       - name: Publish compiler plugin to Maven Central
         run: ./gradlew :kotlin-compiler-plugin:publishAllPublicationsToMavenCentralRepository
 
       - name: Publish gradle plugin to Maven Central
+        if: steps.kotlin_version.outputs.is_idea_build == 'false'
         run: ./gradlew :gradle-plugin:publishAllPublicationsToMavenCentralRepository
 
       - name: Publish gradle plugin to Gradle Plugin Portal
+        if: steps.kotlin_version.outputs.is_idea_build == 'false'
         run: ./gradlew :gradle-plugin:publishPlugins -Pgradle.publish.key=${{ secrets.GRADLE_PUBLISH_KEY }} -Pgradle.publish.secret=${{ secrets.GRADLE_PUBLISH_SECRET }}

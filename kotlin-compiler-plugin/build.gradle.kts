@@ -10,7 +10,7 @@ kotlin {
 
 val compilerPlugin = libs.customStringTemplate.compilerPlugin.get()
 group = compilerPlugin.group
-version = libs.versions.customStringTemplate.get()
+version = compilerPlugin.version!!
 description = "Allows to create a string template processors like modern Java does."
 
 dependencies {

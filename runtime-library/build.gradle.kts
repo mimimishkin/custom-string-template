@@ -17,43 +17,56 @@ description = "Annotation and a class required to write a custom string template
 kotlin {
     jvmToolchain(17)
 
-    android {
-        namespace = "io.github.mimimishkin"
-        compileSdk = 37
+    val ideaBuild = '-' in libs.versions.kotlin.get()
+    if (ideaBuild) {
+        // In IDEA build we need this module only for testing, so enable only jvm target.
+        jvm()
+
+        // We also enable android target for simplisity (AGP requires it to be specified,
+        // and it's simpler than diabling the plugin)
+        android {
+            namespace = "io.github.mimimishkin"
+            compileSdk = 37
+        }
+    } else {
+        android {
+            namespace = "io.github.mimimishkin"
+            compileSdk = 37
+        }
+        androidNativeArm32()
+        androidNativeArm64()
+        androidNativeX64()
+        androidNativeX86()
+
+        iosArm64()
+        iosSimulatorArm64()
+        iosX64()
+
+        listOf(js(), wasmJs()).forEach {
+            it.nodejs()
+            it.browser()
+        }
+        wasmWasi {
+            nodejs()
+        }
+
+        jvm()
+
+        linuxArm64()
+        linuxX64()
+
+        macosArm64()
+
+        mingwX64()
+
+        tvosArm64()
+        tvosSimulatorArm64()
+
+        watchosArm32()
+        watchosArm64()
+        watchosDeviceArm64()
+        watchosSimulatorArm64()
     }
-    androidNativeArm32()
-    androidNativeArm64()
-    androidNativeX64()
-    androidNativeX86()
-
-    iosArm64()
-    iosSimulatorArm64()
-    iosX64()
-
-    listOf(js(), wasmJs()).forEach {
-        it.nodejs()
-        it.browser()
-    }
-    wasmWasi {
-        nodejs()
-    }
-
-    jvm()
-
-    linuxArm64()
-    linuxX64()
-
-    macosArm64()
-
-    mingwX64()
-
-    tvosArm64()
-    tvosSimulatorArm64()
-
-    watchosArm32()
-    watchosArm64()
-    watchosDeviceArm64()
-    watchosSimulatorArm64()
 }
 
 mavenPublishing {
