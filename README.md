@@ -6,15 +6,6 @@
 
 A Kotlin compiler plugin that lets you define custom string interpolation by writing a single function.
 
-## Usage
-
-To use it in your project, add this to `build.gradle.kts`:
-```kotlin
-plugins {
-    id("io.github.mimimishkin.custom-string-template") version "2.4.10-0.1.2"
-}
-```
-
 ## Motivation
 
 Kotlin's built-in string templates (`"$variable"`) are powerful but there's no way to customize what happens to each
@@ -121,16 +112,36 @@ val result: String = FOO("Hello, $name!")
 SCREAMING_SNAKE_CASE makes it easy to distinguish template processors from regular functions at a glance inside
 implementation files where both kinds coexist.
 
+## Usage
+
+To use it in your project, add this to `build.gradle.kts`:
+```kotlin
+plugins {
+    id("io.github.mimimishkin.custom-string-template") version "2.4.10-0.1.2"
+}
+```
+
+Note that while this is enough to compile and work properly, you will get a false error in the IDE -
+`Argument type mismatch: actual type is 'String', but 'StringTemplate' was expected`. This is due to the fact that 
+IntelliJ IDEA runs only bundled compiler plugins (e.g. 'serialization', 'all-open') for code analysis. To enable
+external plugins, you need to install 
+[KEFS](https://plugins.jetbrains.com/plugin/26480-kotlin-external-fir-support) and add an artifact
+`io.github.mimimishkin:custom-string-template-compiler-plugin` located in Maven Central. 
+
+[Here](https://github.com/Mr3zee/Kotlin-External-FIR-Support/blob/main/GUIDE.md) you can find more info about working 
+with third-party compiler plugins. I will maintain compatibility only with compiler version that the latest stable
+IntelliJ IDEA uses.
+
 ## Restrictions
 
 - **No nullable `StringTemplate` parameters** – every `StringTemplate` parameter (value, context, or receiver) must be
   non-nullable.
 - **No default parameter values** – parameters with defaults would make it horrible for the plugin to fight with 
-- synthetic `$default` function.
+  synthetic `$default` function.
 - **`val` only** – `@TemplateProcessor` cannot be applied to `var` properties.
 - **No local declarations** – template processors must be declared at class or file level.
 - **Kotlin only** – the plugin operates at the IR level, so generated facades are not available from Java, JavaScript,
-  or other targets. The generated are hided from other platforms.
+  or other targets. The generated facades are hided from other platforms.
 
 ## StringTemplate decomposition
 
