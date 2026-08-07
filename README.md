@@ -117,7 +117,7 @@ implementation files where both kinds coexist.
 To use it in your project, add this to `build.gradle.kts`:
 ```kotlin
 plugins {
-    id("io.github.mimimishkin.custom-string-template") version "2.4.10-0.1.2"
+    id("io.github.mimimishkin.custom-string-template") version "2.4.10-0.2.0"
 }
 ```
 
@@ -166,3 +166,21 @@ The generated facade function carries the `@FacadeInterpolatorCall` annotation, 
 This prevents calling the facade directly from code that doesn't opt in, which would bypass the plugin and produce
 incorrect results at runtime. Normal call sites that use string literals are resolved by the compiler and do not
 trigger this restriction.
+
+## Custom facades
+
+By default, the generated facade throws an `AssertionError` if the plugin isn't enabled.
+If you want call sites to keep working (with your own logic) even without the plugin (or throw you own error), you can
+write your own facade for the same callable:
+
+```kotlin
+@TemplateProcessor
+fun FOO(string: StringTemplate): String = string.reconstruct()
+
+@FacadeInterpolatorCall
+fun FOO(string: String): String = "fallback: $string"
+```
+
+When the plugin is enabled, it reuses your `@FacadeInterpolatorCall` function instead of generating a duplicate, and
+string-literal calls still route through the template processor. When the plugin is disabled, the call falls back to
+your custom implementation instead of throwing an `AssertionError`.

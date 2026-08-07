@@ -1,12 +1,7 @@
-@file:OptIn(ExperimentalCompilerApi::class)
-
 package io.github.mimimishkin.custom.string.template
 
-import com.tschuchort.compiletesting.KotlinCompilation
 import com.tschuchort.compiletesting.SourceFile
-import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import kotlin.test.Test
-import kotlin.test.todo
 
 class IrFacadeActualizationTest : BaseTemplateTest() {
 

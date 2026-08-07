@@ -769,4 +769,44 @@ class FirFacadeGenerationTest : BaseTemplateTest() {
         """)
         assertFailsToCompile(file)
     }
+
+    @Test
+    fun `custom facade is reused instead of generating a duplicate`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            @file:OptIn(FacadeInterpolatorCall::class)
+
+            package test
+
+            import io.github.mimimishkin.custom.string.template.*
+
+            @TemplateProcessor
+            fun FOO(string: StringTemplate): String = string.reconstruct()
+
+            @FacadeInterpolatorCall
+            fun FOO(string: String): String = "custom:" + string
+
+            fun result(): String = FOO("hello")
+        """)
+        assert(compileAndGetResult(file) == "hello")
+    }
+
+    @Test
+    fun `custom facade provides logic when plugin disabled`() {
+        val file = SourceFile.kotlin("Test.kt", $$"""
+            @file:OptIn(FacadeInterpolatorCall::class)
+
+            package test
+
+            import io.github.mimimishkin.custom.string.template.*
+
+            @TemplateProcessor
+            fun FOO(string: StringTemplate): String = string.reconstruct()
+
+            @FacadeInterpolatorCall
+            fun FOO(string: String): String = "custom:" + string
+
+            fun result(): String = FOO("hello")
+        """)
+        assert(compileWithDisabledPluginAndGetResult(file) == "custom:hello")
+    }
 }

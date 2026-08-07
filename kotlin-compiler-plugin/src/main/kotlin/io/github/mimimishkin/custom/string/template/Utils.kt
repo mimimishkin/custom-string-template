@@ -6,7 +6,9 @@ import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirValueParameter
+import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
 import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.fir.types.classId
 import org.jetbrains.kotlin.fir.types.coneType
@@ -70,6 +72,16 @@ fun FirFunctionSymbol<*>.isInterpolator(): Boolean =
     valueParameterSymbols.any { it.resolvedReturnTypeRef.isStringTemplate() } ||
             contextParameterSymbols.any { it.resolvedReturnTypeRef.isStringTemplate() } ||
             receiverParameterSymbol?.calculateResolvedTypeRef()?.isStringTemplate() == true
+
+fun FirPropertySymbol.isInterpolator(): Boolean =
+    resolvedReturnTypeRef.isStringTemplate() ||
+            receiverParameterSymbol?.calculateResolvedTypeRef()?.isStringTemplate() == true
+
+fun FirCallableSymbol<*>.isInterpolator(): Boolean = when (this) {
+    is FirFunctionSymbol<*> -> this.isInterpolator()
+    is FirPropertySymbol -> this.isInterpolator()
+    else -> false
+}
 
 fun FirProperty.isInterpolator(): Boolean =
     returnTypeRef.isStringTemplate() ||

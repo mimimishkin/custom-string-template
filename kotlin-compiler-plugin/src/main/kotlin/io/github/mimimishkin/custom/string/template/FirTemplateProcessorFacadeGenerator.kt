@@ -1,6 +1,7 @@
 package io.github.mimimishkin.custom.string.template
 
 import org.jetbrains.kotlin.GeneratedDeclarationKey
+import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.EffectiveVisibility
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
@@ -9,7 +10,6 @@ import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.builder.*
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.declarations.utils.isActual
-import org.jetbrains.kotlin.fir.declarations.utils.isOverride
 import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotationCall
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
 import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
@@ -33,22 +33,23 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
 
     companion object {
         private val predicate = LookupPredicate.create { annotatedOrUnder(Symbols.TemplateProcessor.asSingleFqName()) }
+        private val facadePredicate = LookupPredicate.create { annotatedOrUnder(Symbols.FacadeInterpolatorCall.asSingleFqName()) }
     }
     override fun FirDeclarationPredicateRegistrar.registerPredicates() {
         register(predicate)
+        register(facadePredicate)
     }
 
-    private val processorByClasses: Map<ClassId?, MutableMap<CallableId, MutableList<FirFunctionSymbol<*>>>> by lazy {
-        val provider = session.predicateBasedProvider
-        @OptIn(SymbolInternals::class)
-        provider.getSymbolsByPredicate(predicate)
+    private val processorByClasses: Map<ClassId?, MutableMap<CallableId, MutableList<FirCallableSymbol<*>>>> by lazy {
+        session.predicateBasedProvider.getSymbolsByPredicate(predicate)
             .asSequence()
-            .filterIsInstance<FirFunctionSymbol<*>>()
+            .filterIsInstance<FirCallableSymbol<*>>()
             .filter { it.isInterpolator() }
             .filter { !it.isActual }
-            .groupBy { it.callableId.classId }
+            .filter { it.callableId != null }
+            .groupBy { it.callableId!!.classId }
             .mapValues { (_, symbol) ->
-                symbol.groupByTo(mutableMapOf()) { it.callableId }
+                symbol.groupByTo(mutableMapOf()) { it.callableId!! }
             }
     }
 
@@ -81,21 +82,36 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
             .single()
     }
 
-    private fun originalBy(callableId: CallableId): List<FirFunctionSymbol<*>> {
+    private fun originalBy(callableId: CallableId): List<FirCallableSymbol<*>> {
         val classSymbols = processorByClasses[callableId.classId]
         return classSymbols?.remove(callableId) ?: emptyList()
     }
+
+    /**
+     * True when the user supplied their own @FacadeInterpolatorCall for this callable,
+     * in which case the plugin must not generate a duplicate.
+     */
+    private val userFacadeIds: Set<CallableId> by lazy {
+        session.predicateBasedProvider.getSymbolsByPredicate(facadePredicate)
+            .filterIsInstance<FirCallableSymbol<*>>()
+            .mapNotNull { it.callableId }
+            .toSet()
+    }
+
+    private fun hasUserFacade(callableId: CallableId): Boolean = callableId in userFacadeIds
 
     /**
      * Generate sibling stub functions.
      */
     @OptIn(SymbolInternals::class)
     override fun generateFunctions(callableId: CallableId, context: MemberGenerationContext?): List<FirNamedFunctionSymbol> {
+        if (hasUserFacade(callableId)) return emptyList()
+        val interfaceMember = context?.owner?.classKind == ClassKind.INTERFACE
         return originalBy(callableId)
             .filterIsInstance<FirNamedFunctionSymbol>()
             .map { original ->
                 val sibling = buildNamedFunctionCopy(original.fir) {
-                    configFacade(callableId)
+                    configFacade(callableId, interfaceMember)
                     dispatchReceiverType = context?.owner?.defaultType()
                 }
                 sibling.symbol
@@ -107,18 +123,20 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
      */
     @OptIn(SymbolInternals::class)
     override fun generateProperties(callableId: CallableId, context: MemberGenerationContext?): List<FirPropertySymbol> {
+        if (hasUserFacade(callableId)) return emptyList()
+        val interfaceMember = context?.owner?.classKind == ClassKind.INTERFACE
         return originalBy(callableId)
             .filterIsInstance<FirPropertyAccessorSymbol>()
             .map { original ->
                 val sibling = buildPropertyCopy(original.propertySymbol.fir) {
-                    configFacade(callableId)
+                    configFacade(callableId, interfaceMember)
                     dispatchReceiverType = context?.owner?.defaultType()
                 }
                 sibling.symbol
             }
     }
 
-    private fun FirDeclarationBuilder.configFacade(callableId: CallableId): Unit = with(session.typeContext) {
+    private fun FirDeclarationBuilder.configFacade(callableId: CallableId, interfaceMember: Boolean): Unit = with(session.typeContext) {
         val builder = this@configFacade
         val isProperty = builder is FirPropertyBuilder
         val isFunction = builder is FirNamedFunctionBuilder
@@ -138,18 +156,22 @@ class FirTemplateProcessorFacadeGenerator(session: FirSession) : FirDeclarationG
         moduleData = session.moduleData
         source = null
 
+        fun siblingModality(currentModality: Modality?): Modality = when (currentModality) {
+            Modality.ABSTRACT, Modality.OPEN -> Modality.OPEN
+            else -> if (interfaceMember) Modality.OPEN else Modality.FINAL
+        }
         if (isFunction) {
             val currentStatus = status
             status = FirResolvedDeclarationStatusImpl(
                 currentStatus.visibility.takeIf { it != Visibilities.Unknown } ?: Visibilities.Public,
-                currentStatus.modality ?: Modality.FINAL,
+                siblingModality(currentStatus.modality),
                 EffectiveVisibility.Public
             )
         } else if (isProperty) {
             val currentStatus = status
             status = FirResolvedDeclarationStatusImpl(
                 currentStatus.visibility.takeIf { it != Visibilities.Unknown } ?: Visibilities.Public,
-                currentStatus.modality ?: Modality.FINAL,
+                siblingModality(currentStatus.modality),
                 EffectiveVisibility.Public
             )
         }

@@ -33,6 +33,17 @@ abstract class BaseTemplateTest {
         compile()
     }
 
+    protected fun compileWithDisabledPluginAndGetResult(source: SourceFile): String {
+        val result = compileWithDisabledPlugin(source)
+        assert(result.exitCode == KotlinCompilation.ExitCode.OK) { result.messages }
+        val classLoader = result.classLoader
+        try {
+            return classLoader.loadClass("test.TestKt").getMethod("result").invoke(null) as String
+        } catch (e: Exception) {
+            throw AssertionError("Failed to invoke result()", e)
+        }
+    }
+
     protected fun compileAndGetResult(source: SourceFile): String {
         val result = compile(source)
         assert(result.exitCode == KotlinCompilation.ExitCode.OK) { result.messages }

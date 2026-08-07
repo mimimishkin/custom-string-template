@@ -337,7 +337,7 @@ class DiagnosticsTest : BaseTemplateTest() {
 
             class Processor {
                 @TemplateProcessor
-                var FOO: StringTemplate = TODO()
+                var StringTemplate.FOO: String = reconstruct()
             }
         """)
         val result = compile(file)
@@ -355,7 +355,7 @@ class DiagnosticsTest : BaseTemplateTest() {
 
             class Processor {
                 @TemplateProcessor
-                val FOO: StringTemplate = TODO()
+                val StringTemplate.FOO: String get() = reconstruct()
             }
         """)
         assertCompiles(file)
@@ -369,7 +369,7 @@ class DiagnosticsTest : BaseTemplateTest() {
             import io.github.mimimishkin.custom.string.template.StringTemplate
 
             class Processor {
-                val FOO: StringTemplate = TODO()
+                val StringTemplate.FOO: String get() = reconstruct()
             }
         """)
         val result = compile(file)
@@ -404,12 +404,12 @@ class DiagnosticsTest : BaseTemplateTest() {
             import io.github.mimimishkin.custom.string.template.*
 
             interface Base {
-                val FOO: StringTemplate
+                val StringTemplate.FOO: String get() = reconstruct()
             }
 
             class Impl : Base {
                 @TemplateProcessor
-                override val FOO: StringTemplate = TODO()
+                override val StringTemplate.FOO: String get() = reconstruct()
             }
         """)
         assertCompiles(file)
